@@ -26,6 +26,7 @@ const MORE_LINKS = [
   { to: 'files', label: copy.routes.files },
   { to: 'checklist', label: copy.routes.checklist },
   { to: 'info', label: copy.routes.info },
+  { to: 'offline', label: copy.offline.title },
   { to: 'members', label: copy.routes.members },
 ] as const;
 

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { copy } from '@/copy';
 import { keys as tripKeys, useMembers } from '@/features/trips/api';
 import { supabase } from '@/lib/supabase';
+import { writeOrQueue } from '@/lib/offlineStore';
 import type { Database } from '@/types/db';
 
 export type ChecklistItem = Database['public']['Tables']['checklist_items']['Row'];
@@ -113,11 +114,27 @@ export function useUpdateItems(tripId: string) {
   const rollback = useRollback(tripId);
   return useMutation({
     mutationFn: async (patches: { id: string; patch: Patch }[]) => {
-      const results = await Promise.all(
-        patches.map(({ id, patch }) => db().from('checklist_items').update(patch).eq('id', id)),
+      await Promise.all(
+        patches.map(async ({ id, patch }) => {
+          const run = async () => {
+            const { error } = await db().from('checklist_items').update(patch).eq('id', id);
+            if (error) throw error;
+          };
+          // Toggling a checkbox may wait for the connection; renames and reordering may not (SPEC F-3-4).
+          const keys = Object.keys(patch);
+          const queueable = keys.length > 0 && keys.every((k) => k === 'checked' || k === 'checked_by');
+          if (!queueable) return run();
+          await writeOrQueue(
+            tripId,
+            {
+              type: 'checklist.update',
+              id,
+              patch: patch as { checked?: boolean; checked_by?: string | null },
+            },
+            run,
+          );
+        }),
       );
-      const failed = results.find((r) => r.error);
-      if (failed?.error) throw failed.error;
     },
     onMutate: (patches) => {
       const by = new Map(patches.map((x) => [x.id, x.patch]));

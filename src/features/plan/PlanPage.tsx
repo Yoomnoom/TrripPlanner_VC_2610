@@ -52,6 +52,8 @@ import {
 import { AddPlaceSheet, type AddTarget } from './AddPlaceSheet';
 import { useDestinations, useTripWeather } from '@/features/info/api';
 import { describeCode, type DayWeather } from '@/lib/weather';
+import { prepareOfflineCards } from '@/features/offline/prepare';
+import { useOnline } from '@/lib/offlineStore';
 import { IndoorSheet } from './IndoorSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
@@ -73,6 +75,8 @@ export function PlanPage() {
   const grouped = useMemo(() => groupByDay(places.data ?? [], total), [places.data, total]);
   useLegCalculation(trip.id, grouped.days);
 
+  const online = useOnline();
+  const [savingOffline, setSavingOffline] = useState(false);
   const dests = useDestinations(trip.id);
   const weather = useTripWeather(trip, dests.list[0]);
   const [params, setParams] = useSearchParams();
@@ -235,7 +239,29 @@ export function PlanPage() {
 
   return (
     <div className="p-4">
-      <h1 className="py-2 text-xl font-bold">{copy.plan.heading}</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="py-2 text-xl font-bold">{copy.plan.heading}</h1>
+        <button
+          type="button"
+          className={btn.ghost}
+          disabled={savingOffline || !places.data?.length}
+          onClick={async () => {
+            setSavingOffline(true);
+            try {
+              const day = (places.data ?? []).filter((p) => p.day_index !== null);
+              const r = await prepareOfflineCards(trip.id, day, dests.list[0]?.countryCode ?? null);
+              toast.success(copy.offline.savedCards(r.saved));
+              if (!r.usedKey) toast(copy.offline.noKeyLocal);
+            } catch {
+              toast.error(copy.common.saveFailed);
+            } finally {
+              setSavingOffline(false);
+            }
+          }}
+        >
+          {savingOffline ? copy.offline.saving : copy.offline.save}
+        </button>
+      </div>
       <div
         role="tablist"
         className="mb-3 grid max-w-sm grid-cols-3 gap-1 rounded-full bg-surface p-1 shadow-card"
@@ -388,7 +414,9 @@ export function PlanPage() {
                       <PlaceCard
                         place={p}
                         onMenu={() => setSelected(p)}
-                        onIndoor={indoorDays.has(i) && isOutdoor(p) ? () => setIndoorFor(p) : undefined}
+                        onIndoor={
+                          online && indoorDays.has(i) && isOutdoor(p) ? () => setIndoorFor(p) : undefined
+                        }
                       />
                     </li>
                   ))}

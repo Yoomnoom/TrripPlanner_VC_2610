@@ -5,6 +5,7 @@ import { copy } from '@/copy';
 import { keys as tripKeys } from '@/features/trips/api';
 import type { ExpenseRow, SplitRow } from '@/lib/expenseStats';
 import { supabase } from '@/lib/supabase';
+import { writeOrQueue } from '@/lib/offlineStore';
 import type { Database } from '@/types/db';
 
 type Tables = Database['public']['Tables'];
@@ -156,13 +157,18 @@ export function useSaveExpense(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ splits, ...data }: ExpenseInput) => {
-      const { error } = await db().rpc('save_expense', {
-        p_trip: tripId,
-        p_id: data.id,
-        p_data: data,
-        p_splits: splits,
-      });
-      if (error) throw error;
+      const run = async () => {
+        const { error } = await db().rpc('save_expense', {
+          p_trip: tripId,
+          p_id: data.id,
+          p_data: data,
+          p_splits: splits,
+        });
+        if (error) throw error;
+      };
+      // Adding an expense offline is allowed (receipt attachments are not: they need the network).
+      if (data.receipt_path) return run();
+      await writeOrQueue(tripId, { type: 'expense.save', tripId, id: data.id, data, splits }, run);
     },
     onMutate: async (input) => {
       await qc.cancelQueries({ queryKey: expenseKeys.list(tripId) });

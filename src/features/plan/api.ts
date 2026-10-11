@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { copy } from '@/copy';
 import { createQueue } from '@/lib/queue';
 import { supabase } from '@/lib/supabase';
+import { writeOrQueue } from '@/lib/offlineStore';
 import { getRoutesProvider } from '@/providers/routes';
 import type { Database } from '@/types/db';
 import type { TravelMode } from '@/types/domain';
@@ -89,11 +90,23 @@ export function useUpdatePlaces(tripId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (patches: { id: string; patch: PlacePatch }[]) => {
-      const results = await Promise.all(
-        patches.map(({ id, patch }) => db().from('places').update(patch).eq('id', id)),
+      await Promise.all(
+        patches.map(async ({ id, patch }) => {
+          const run = async () => {
+            const { error } = await db().from('places').update(patch).eq('id', id);
+            if (error) throw error;
+          };
+          // A note edit may wait for the connection; anything that reorders the schedule may not.
+          const keys = Object.keys(patch);
+          if (keys.length === 1 && keys[0] === 'note') {
+            await writeOrQueue(
+              tripId,
+              { type: 'place.note', id, note: (patch.note as string | null) ?? null },
+              run,
+            );
+          } else await run();
+        }),
       );
-      const failed = results.find((r) => r.error);
-      if (failed?.error) throw failed.error;
     },
     onMutate: (patches) => applyOptimistic(qc, tripId, patches),
     onError: (_e, _v, ctx) => {

@@ -1,11 +1,30 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { Toaster } from 'sonner';
 import { ensureSession } from '@/lib/supabase';
+import { idbKV } from '@/lib/offlineStore';
+import { PERSIST_MAX_AGE, shouldPersist } from '@/lib/offlineQueue';
 import { copy } from '@/copy';
+import { OfflineBanner } from './OfflineBanner';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
+  // gcTime must be at least the persist maxAge or restored queries would be dropped immediately
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false, gcTime: PERSIST_MAX_AGE },
+  },
+});
+
+/** Read cache on the device (IndexedDB), trip data only, 7 days. Bump `buster` when cached shapes change. */
+const persister = createAsyncStoragePersister({
+  storage: {
+    getItem: async (k) => (await idbKV.get<string>(k)) ?? null,
+    setItem: (k, v) => idbKV.set(k, v),
+    removeItem: (k) => idbKV.set(k, undefined),
+  },
+  key: 'tp:query-cache',
+  throttleTime: 2000,
 });
 
 type SessionState =
@@ -55,9 +74,20 @@ function SessionGate({ children }: { children: ReactNode }) {
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: PERSIST_MAX_AGE,
+        buster: 'v1',
+        dehydrateOptions: {
+          shouldDehydrateQuery: (q) => q.state.status === 'success' && shouldPersist(q.queryKey),
+        },
+      }}
+    >
+      <OfflineBanner />
       <SessionGate>{children}</SessionGate>
       <Toaster position="top-center" />
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

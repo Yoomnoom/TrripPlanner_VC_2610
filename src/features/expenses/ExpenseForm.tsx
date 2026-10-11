@@ -8,6 +8,7 @@ import { getFxRate } from '@/lib/fx';
 import { receiptPath as makeReceiptPath } from '@/lib/files';
 import { resizeToJpeg } from '@/lib/image';
 import { supabase } from '@/lib/supabase';
+import { useOnline } from '@/lib/offlineStore';
 import { CURRENCIES, formatKrw, formatMoney, parseQuickInput, splitByWeights, toKrw } from '@/lib/money';
 import { dayIndexOf, dayYmd, formatMdWeekday } from '@/lib/trip';
 import { EXPENSE_CATEGORIES, LABELS_KO, type ExpenseCategory, type PaymentMethod } from '@/types/domain';
@@ -64,6 +65,7 @@ export function ExpenseForm({
   >;
 }) {
   const editing = !!initial;
+  const online = useOnline();
   const [id] = useState(() => initial?.id ?? crypto.randomUUID());
   const [quick, setQuick] = useState('');
   const [more, setMore] = useState(editing);
@@ -262,14 +264,14 @@ export function ExpenseForm({
       )}
 
       <div className="grid gap-1">
-        <label className={`${btn.ghost} cursor-pointer ${receiptBusy ? 'opacity-50' : ''}`}>
+        <label className={`${btn.ghost} cursor-pointer ${receiptBusy || !online ? 'opacity-50' : ''}`}>
           {receiptBusy ? copy.expenses.receiptReading : copy.expenses.receiptButton}
           <input
             type="file"
             accept="image/*"
             capture="environment"
             hidden
-            disabled={receiptBusy}
+            disabled={receiptBusy || !online}
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = '';

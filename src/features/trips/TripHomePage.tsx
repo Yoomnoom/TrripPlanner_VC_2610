@@ -9,6 +9,9 @@ import { Gauge } from '@/components/Gauge';
 import { useChecklist, useUpdateItems } from '@/features/checklist/api';
 import { pendingPreview, progress } from '@/lib/checklist';
 import { DriverCard } from '@/features/home/DriverCard';
+import { loadCards } from '@/features/offline/prepare';
+import { nameForDriver } from '@/lib/offline';
+import { useQuery } from '@tanstack/react-query';
 import { AfterBlock, DuringBlock, UpcomingReservations } from '@/features/home/PhaseBlocks';
 import { QuickExpenseSheet } from '@/features/home/QuickExpenseSheet';
 import { useDestinations, useTripWeather } from '@/features/info/api';
@@ -82,6 +85,11 @@ export function TripHomePage() {
   })();
   const [quickOpen, setQuickOpen] = useState(false);
   const [driver, setDriver] = useState<Place | null>(null);
+  const offlineCards = useQuery({
+    queryKey: ['offline-cards', trip.id],
+    queryFn: () => loadCards(trip.id),
+    networkMode: 'always',
+  });
   const dLabel =
     phase.kind === 'before'
       ? copy.tripHome.dBefore(phase.daysLeft)
@@ -273,7 +281,17 @@ export function TripHomePage() {
         meId={myMemberId}
         defaultCurrency={infoOf(dests.list[0]?.countryCode)?.currency ?? 'KRW'}
       />
-      <DriverCard place={driver} onClose={() => setDriver(null)} />
+      <DriverCard
+        place={
+          driver
+            ? nameForDriver(
+                offlineCards.data?.find((c) => c.id === driver.id),
+                driver,
+              )
+            : null
+        }
+        onClose={() => setDriver(null)}
+      />
       <InviteSheet trip={trip} isOwner={isOwner} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );

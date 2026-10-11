@@ -5,6 +5,7 @@ import { aiErrorMessage, functionErrorCode } from '@/features/chat/api';
 import { resizeToJpeg } from '@/lib/image';
 import type { ParsedReservation } from '@/lib/reservations';
 import { supabase } from '@/lib/supabase';
+import { useOnline } from '@/lib/offlineStore';
 
 type Method = 'manual' | 'paste' | 'capture';
 
@@ -23,6 +24,7 @@ export function AssistPanel({
   onMethod: (m: Method) => void;
   onParsed: (p: ParsedReservation) => void;
 }) {
+  const online = useOnline();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -97,7 +99,7 @@ export function AssistPanel({
           <button
             type="button"
             className={btn.primary}
-            disabled={busy || text.trim() === ''}
+            disabled={busy || !online || text.trim() === ''}
             onClick={() => void run({ text })}
           >
             {busy ? copy.reservations.reading : copy.reservations.read}
@@ -113,7 +115,7 @@ export function AssistPanel({
               type="file"
               accept="image/*"
               hidden
-              disabled={busy}
+              disabled={busy || !online}
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 e.target.value = '';
@@ -122,6 +124,11 @@ export function AssistPanel({
             />
           </label>
         </div>
+      )}
+      {!online && method !== 'manual' && (
+        <p role="status" className="text-sm font-semibold text-amber-800">
+          {copy.offline.needOnline}
+        </p>
       )}
       {message && (
         <p role="alert" className="text-sm font-semibold text-danger">

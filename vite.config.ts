@@ -11,6 +11,12 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // App shell + static data only. Google map tiles are never cached (terms of use).
+        globPatterns: ['**/*.{js,css,html,svg,png,json,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/functions\//],
+      },
       manifest: {
         name: 'Trip Planner',
         short_name: 'Trip',

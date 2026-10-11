@@ -12,6 +12,7 @@ import { asProposal } from '@/lib/itinerary';
 import { tripDays } from '@/lib/trip';
 import { useSavedPlaces } from '@/features/saved/api';
 import { prefsToText, readPrefs } from '@/lib/prefs';
+import { useOnline } from '@/lib/offlineStore';
 import { AiSettingsSheet } from './AiSettingsSheet';
 import { WizardSheet } from './WizardSheet';
 import { ProposalCard } from './ProposalCard';
@@ -42,6 +43,7 @@ export function ChatPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
 
+  const online = useOnline();
   const noKey = !!status.data && !status.data.gemini && !status.data.openrouter && !status.data.fake;
   const count = messages.data?.length ?? 0;
   useEffect(() => {
@@ -51,7 +53,7 @@ export function ChatPage() {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const t = text.trim();
-    if (!t || send.isPending || noKey) return;
+    if (!t || send.isPending || noKey || !online) return;
     send.mutate(t, { onSuccess: () => setText('') });
   };
 
@@ -72,6 +74,11 @@ export function ChatPage() {
         </button>
       </header>
 
+      {!online && (
+        <p role="status" className="mb-2 rounded-input bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+          {copy.offline.needOnline}
+        </p>
+      )}
       {noKey && (
         <div role="status" className="mb-2 rounded-card bg-primary-soft p-4">
           <p className="font-bold">{copy.chat.needKey}</p>
@@ -97,7 +104,7 @@ export function ChatPage() {
             <button
               type="button"
               className="mx-auto min-h-11 rounded-full bg-primary px-5 font-semibold text-white disabled:opacity-50"
-              disabled={noKey}
+              disabled={noKey || !online}
               onClick={() => setWizardOpen(true)}
             >
               {copy.wizard.open}
@@ -161,14 +168,14 @@ export function ChatPage() {
           placeholder={copy.chat.placeholder}
           aria-label={copy.chat.placeholder}
           maxLength={2000}
-          disabled={noKey}
+          disabled={noKey || !online}
           onChange={(e) => setText(e.target.value)}
         />
         <button
           type="submit"
           aria-label={copy.chat.send}
           className={`${btn.primary} !px-4`}
-          disabled={!text.trim() || send.isPending || noKey}
+          disabled={!text.trim() || send.isPending || noKey || !online}
         >
           <Send className="size-5" aria-hidden />
         </button>

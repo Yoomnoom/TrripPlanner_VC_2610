@@ -16,6 +16,7 @@ import { ReservationsPage } from '@/features/reservations/ReservationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { SavedPage } from '@/features/saved/SavedPage';
 import { InfoPage } from '@/features/info/InfoPage';
+import { OfflinePage } from '@/features/offline/OfflinePage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
       { path: 'checklist', element: <ChecklistPage /> },
       { path: 'expenses', element: <ExpensesPage /> },
       { path: 'info', element: <InfoPage /> },
+      { path: 'offline', element: <OfflinePage /> },
       { path: 'members', element: <MembersPage /> },
     ],
   },

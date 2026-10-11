@@ -10,6 +10,7 @@ import { useReservations } from '@/features/reservations/api';
 import { useMembers } from '@/features/trips/api';
 import type { TripContext } from '@/features/trips/TripLayout';
 import { formatBytes, normalizeUrl } from '@/lib/files';
+import { useOnline } from '@/lib/offlineStore';
 import { formatMd } from '@/lib/trip';
 import {
   signedUrl,
@@ -31,6 +32,7 @@ export function FilesPage() {
   const update = useUpdateFile(trip.id);
   const del = useDeleteFile(trip.id);
 
+  const online = useOnline();
   const input = useRef<HTMLInputElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [editing, setEditing] = useState<TripFile | null>(null);
@@ -62,7 +64,7 @@ export function FilesPage() {
             type="button"
             className={btn.dark}
             onClick={() => input.current?.click()}
-            disabled={upload.isPending}
+            disabled={upload.isPending || !online}
           >
             <Upload className="size-4" aria-hidden />
             {upload.isPending ? copy.files.uploading : copy.files.upload}

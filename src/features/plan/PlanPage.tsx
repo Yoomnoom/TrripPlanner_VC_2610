@@ -230,7 +230,7 @@ export function PlanPage() {
       <h1 className="py-2 text-xl font-bold">{copy.plan.heading}</h1>
       <div
         role="tablist"
-        className="mb-3 grid max-w-xs grid-cols-2 gap-1 rounded-full bg-surface p-1 shadow-card"
+        className="mb-3 grid max-w-sm grid-cols-3 gap-1 rounded-full bg-surface p-1 shadow-card"
       >
         {(['list', 'calendar', 'map'] as const).map((v) => (
           <button

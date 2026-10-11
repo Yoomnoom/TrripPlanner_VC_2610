@@ -1,13 +1,6 @@
-export const PLACE_CATEGORIES = [
-  'food',
-  'cafe',
-  'sightseeing',
-  'shopping',
-  'activity',
-  'lodging',
-  'transport',
-  'other',
-] as const;
+import { PLACE_CATEGORIES } from '../../supabase/functions/_shared/domain.ts';
+
+export { PLACE_CATEGORIES };
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
 
 export const EXPENSE_CATEGORIES = ['transport', 'lodging', 'food', 'shopping', 'ticket', 'other'] as const;

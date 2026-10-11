@@ -36,3 +36,7 @@
 2026-10-11 · M7 · 목적지 통화 기본값 대신 마지막 사용 통화를 기본값으로 · 목적지 통화 데이터는 M14(country-info)에서 생기므로 그때 교체
 2026-10-11 · M7 · 새 의존성 recharts(도넛·막대, SPEC 지정, 라우트 lazy)
 2026-10-11 · M7 · fx-rate는 Frankfurter v1(api.frankfurter.dev) 사용 · 2026-10-12 실제 호출로 JPY 성공/VND 미지원(404→rate null) 확인
+2026-10-12 · M9 · AI 스키마를 supabase/functions/_shared/schemas.ts로 옮기고 src/schemas/ai.ts는 재export · Deno와 앱이 같은 파일을 쓰도록(tsconfig allowImportingTsExtensions)
+2026-10-12 · M9 · Gemini 기본 모델은 ListModels로 가장 새 gemini-X-flash를 자동 선택(DEFAULT_GEMINI_MODEL이 우선) · 모델명 하드코딩 금지(규칙 7), 실제로 gemini-2.5-flash가 404였음
+2026-10-12 · M9 · AI_FAKE=1이면 결정적 가짜 제공자로 키 없이 채팅→제안→적용 흐름 검증 · 무인 모드 요구사항(키 없이도 끝까지 동작)
+2026-10-12 · M9 · DAILY_LIMIT_AI=30은 supabase/functions/.env 수정 금지(deny)로 직접 못 넣음 → HUMAN_TODO에 안내, 테스트 호출은 최소로

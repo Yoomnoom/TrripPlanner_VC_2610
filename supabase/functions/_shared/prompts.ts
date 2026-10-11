@@ -1,0 +1,84 @@
+import { PLACE_CATEGORIES } from './domain.ts';
+
+/** ai-plan system prompt (SPEC C-5). */
+export const PLAN_SYSTEM = `너는 개인 여행 플래너의 일정 설계 도우미다. 항상 한국어로 답한다.
+출력은 지정된 JSON 스키마만 사용하고 JSON 밖에는 아무 글자도 쓰지 않는다.
+
+[규칙]
+- 사용자가 일정을 만들거나 고쳐 달라고 하면 intent="itinerary"와 itinerary를 채우고, 단순 질문이면 intent="chat", itinerary=null.
+- 일정은 여행 일수와 같은 수의 day를 만들고 dayIndex는 0부터 시작한다.
+- 하루 3~6개 장소, 시간은 24시간제 "HH:mm". 식사는 식사 시간대(아침 08~09, 점심 12~13, 저녁 18~19)에 둔다.
+- 같은 날 장소는 지리적으로 가까운 순서로 묶고, 이동 시간을 고려해 사이에 여유를 둔다.
+- 실제로 존재하는 유명하고 검증 가능한 장소만 쓴다. 불확실하면 쓰지 않는다.
+- searchQuery는 "정확한 상호명 + 도시/동네" 형태로 쓴다.
+- category는 food, cafe, sightseeing, shopping, activity, lodging, transport, other 중 하나.
+- isIndoor는 확실하지 않으면 null.
+- 이미 있는 일정(CONTEXT.currentItinerary)을 수정하라는 요청이면 수정이 반영된 "전체 일정"을 반환한다.
+- 날씨·환율 정보는 CONTEXT에 주어진 값만 사용한다. 없으면 모른다고 말하고 추측하지 않는다.
+- 비자·입국 규정은 변할 수 있으니 일반 안내 후 "공식 사이트에서 확인하세요"를 덧붙인다.
+- reply는 3문장 이내로, 일정을 만들었다면 일차별 한 줄 요약을 포함한다.`;
+
+export const buildPlanUser = (context: unknown, message: string) =>
+  `CONTEXT: ${JSON.stringify(context)}\n\n요청: ${message}`;
+
+const nullable = (type: string, extra: Record<string, unknown> = {}) => ({ type: [type, 'null'], ...extra });
+const HHMM = { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' };
+
+const itemSchema = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'category', 'startTime', 'endTime', 'isIndoor', 'note', 'searchQuery'],
+  properties: {
+    name: { type: 'string' },
+    category: { type: 'string', enum: [...PLACE_CATEGORIES] },
+    startTime: HHMM,
+    endTime: HHMM,
+    isIndoor: nullable('boolean'),
+    note: nullable('string'),
+    searchQuery: { type: 'string' },
+  },
+};
+
+/** JSON Schema twin of AiPlanResponse for provider structured output (strict-compatible). */
+export const PLAN_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['reply', 'intent', 'itinerary'],
+  properties: {
+    reply: { type: 'string' },
+    intent: { type: 'string', enum: ['chat', 'itinerary'] },
+    itinerary: {
+      anyOf: [
+        { type: 'null' },
+        {
+          type: 'object',
+          additionalProperties: false,
+          required: ['days'],
+          properties: {
+            days: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['dayIndex', 'title', 'items'],
+                properties: {
+                  dayIndex: { type: 'integer' },
+                  title: { type: 'string' },
+                  items: { type: 'array', items: itemSchema },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  },
+};
+
+/** Tiny schema for the connection test. */
+export const PING_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['ok'],
+  properties: { ok: { type: 'boolean' } },
+};

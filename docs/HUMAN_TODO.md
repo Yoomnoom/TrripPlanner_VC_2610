@@ -20,3 +20,11 @@
 - 필요 단계: M6, M7, M8 (약 15분, 시크릿 창 2개)
 - 방법: (1) 체크리스트 템플릿 추가 → 한쪽에서 체크하면 다른 창에 1~2초 안에 반영·홈 게이지 갱신. (2) 지출 추가에서 `점심 스시 1480엔 카드` 입력 → 칩 자동 채움, 저장 후 목록/요약 반영. (3) 정산 탭에서 `정산` → 반대편 창에도 반영, `정산 취소`로 복구.
 - 실패 시 증상: 지출 저장 시 `저장하지 못했어요` 토스트 = RPC 오류(콘솔 확인), 환율이 비어 있음 = `supabase functions serve` 미실행(오프라인이면 마지막 환율 사용).
+
+### [M9] OpenRouter 크레딧 · 모델명 · 한도 설정 (UNVERIFIED)
+- 필요 단계: M9 (약 10분)
+- OpenRouter: 테스트 결과 HTTP 402(결제/크레딧 부족). openrouter.ai에서 크레딧을 충전하거나 무료 모델을 지정한 뒤 AI 설정 → 연결 테스트가 `연결됐어요`가 되는지 확인. 기본 모델 `google/gemini-2.5-flash`는 최신 이름이 아닐 수 있으니 `DEFAULT_OPENROUTER_MODEL`로 지정 권장.
+- Gemini: 실제 호출 성공(모델은 ListModels로 자동 선택). 고정하려면 `supabase/functions/.env`에 `DEFAULT_GEMINI_MODEL=` 추가.
+- 비용 보호: `supabase/functions/.env`에 `DAILY_LIMIT_AI=30` 추가(무인 모드에서는 이 파일 수정 금지라 직접 못 넣음, 기본값 60).
+- Google 서버 키가 없어서 AI가 만든 장소는 "위치 미확인"(좌표 없음)으로 저장됨 → M4 항목의 `GOOGLE_SERVER_KEY` 입력 후 새로 생성하면 좌표가 채워지는지 확인.
+- 실패 시 증상: 채팅에서 `AI 응답을 받지 못했어요` = 두 제공자 모두 실패(함수 로그: `supabase functions serve` 출력의 `ai-plan AI_FAILED`).

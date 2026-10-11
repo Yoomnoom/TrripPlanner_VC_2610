@@ -13,6 +13,7 @@ import { ChatPage } from '@/features/chat/ChatPage';
 import { ExplorePage } from '@/features/explore/ExplorePage';
 import { FilesPage } from '@/features/files/FilesPage';
 import { ReservationsPage } from '@/features/reservations/ReservationsPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -36,7 +37,10 @@ export const router = createBrowserRouter([
       { path: 'members', element: <MembersPage /> },
     ],
   },
-  { path: '/footprints', element: <Placeholder title={r.footprints} /> },
-  { path: '/settings', element: <Placeholder title={r.settings} /> },
+  {
+    path: '/footprints',
+    lazy: async () => ({ Component: (await import('@/features/footprints/FootprintsPage')).default }),
+  },
+  { path: '/settings', element: <SettingsPage /> },
   { path: '*', element: <Placeholder title={r.notFound} /> },
 ]);

@@ -53,3 +53,7 @@
 2026-10-12 · M13 · 마법사 답변과 mustInclude는 trips.planning_prefs에 저장하고, 요청의 mustInclude는 본문으로도 전달 · 저장은 이후 호출 컨텍스트용, 본문은 이번 요청 강제용
 2026-10-12 · M13 · PlanningPrefs를 supabase/functions/_shared/prefs.ts로 두고 앱은 재export · AI 스키마와 같은 이유(Deno·앱 단일 출처), 모든 필드 nullish로 구조화 출력 스키마와 호환
 2026-10-12 · M13 · 수동 입력 장소의 saved_places 키는 `manual:정규화이름` · google_place_id가 NOT NULL+유니크라 Google 키 없이도 중복 저장 방지
+2026-10-12 · M14 · country-info는 확신 있는 필드만 채우고 verifiedAt=null · SPEC이 "공식 출처 확인 + 불확실하면 비움"을 요구하나 무인 모드에서 공식 출처 대조를 못 해 사람 확인 항목(HUMAN_TODO)으로 남김
+2026-10-12 · M14 · 환율 오프라인 값은 IndexedDB 대신 localStorage(lib/fx.ts) 유지 · 값이 통화당 수십 바이트라 충분, M17 영속화 단계에서 통합 여부 재검토
+2026-10-12 · M14 · 비자·입국은 서술 없이 외교부 해외안전여행 + 검색 링크만 · CLAUDE.md 알려진 주의점 · 대사관 URL은 확신이 없어 검색 링크로 대체
+2026-10-12 · M14 · 날씨 규칙: 과거 여행=아카이브 실측, 16일 창 안=예보(창 밖 날짜는 생략), 그 밖=작년 같은 기간 아카이브(예보 아님 명시) · Open-Meteo 실호출로 파라미터 확인(아카이브는 강수확률 null)

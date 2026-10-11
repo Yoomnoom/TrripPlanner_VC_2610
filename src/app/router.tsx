@@ -15,6 +15,7 @@ import { FilesPage } from '@/features/files/FilesPage';
 import { ReservationsPage } from '@/features/reservations/ReservationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { SavedPage } from '@/features/saved/SavedPage';
+import { InfoPage } from '@/features/info/InfoPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: 'files', element: <FilesPage /> },
       { path: 'checklist', element: <ChecklistPage /> },
       { path: 'expenses', element: <ExpensesPage /> },
+      { path: 'info', element: <InfoPage /> },
       { path: 'members', element: <MembersPage /> },
     ],
   },

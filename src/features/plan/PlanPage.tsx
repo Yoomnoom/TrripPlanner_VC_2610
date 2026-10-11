@@ -50,6 +50,8 @@ import {
   type Place,
 } from './api';
 import { AddPlaceSheet, type AddTarget } from './AddPlaceSheet';
+import { useDestinations, useTripWeather } from '@/features/info/api';
+import { describeCode, type DayWeather } from '@/lib/weather';
 import { IndoorSheet } from './IndoorSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
@@ -71,6 +73,8 @@ export function PlanPage() {
   const grouped = useMemo(() => groupByDay(places.data ?? [], total), [places.data, total]);
   useLegCalculation(trip.id, grouped.days);
 
+  const dests = useDestinations(trip.id);
+  const weather = useTripWeather(trip, dests.list[0]);
   const [params, setParams] = useSearchParams();
   const v0 = params.get('view');
   const view = v0 === 'map' || v0 === 'calendar' ? v0 : 'list';
@@ -341,6 +345,12 @@ export function PlanPage() {
                           </span>
                         )}
                         <span className="text-sm text-muted">{copy.plan.placeCount(list.length)}</span>
+                        {weather.data?.byDay.get(i) && (
+                          <WeatherBadge
+                            w={weather.data.byDay.get(i)!}
+                            lastYear={weather.data.plan.kind === 'archive-last-year'}
+                          />
+                        )}
                       </button>
                       <label className="flex min-h-11 cursor-pointer items-center gap-1.5 text-xs font-semibold text-muted">
                         <input
@@ -564,5 +574,21 @@ function LegChip({ prev, cur, onClick }: { prev: Place; cur: Place; onClick: () 
       <Icon className="size-4" aria-hidden />
       {legLabel(cur.leg_duration_s!, cur.leg_distance_m!, cur.leg_estimated)}
     </button>
+  );
+}
+
+/** Icon + high/low for a Day header. The words carry the meaning (screen readers, not only the emoji). */
+function WeatherBadge({ w, lastYear }: { w: DayWeather; lastYear: boolean }) {
+  const d = describeCode(w.code);
+  return (
+    <span
+      className="tabular inline-flex items-center gap-1 rounded-full bg-bg px-2 py-0.5 text-xs font-semibold text-muted"
+      title={lastYear ? copy.info.weatherBadgeLastYear : undefined}
+    >
+      <span aria-hidden>{d.icon}</span>
+      <span className="sr-only">{d.label}</span>
+      {w.maxC !== null ? `${Math.round(w.maxC)}°` : '–'}/{w.minC !== null ? `${Math.round(w.minC)}°` : '–'}
+      {lastYear && <span className="font-normal">({copy.info.weatherBadgeLastYear})</span>}
+    </span>
   );
 }

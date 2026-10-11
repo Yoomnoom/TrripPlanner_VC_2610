@@ -69,6 +69,7 @@ export function TripHomePage() {
       label: copy.tripHome.cards.checklist,
       n: checklist.data && `${pAll.done}/${pAll.total}`,
     },
+    { to: 'info', label: copy.tripHome.cards.info, n: undefined },
     {
       to: 'members',
       label: copy.tripHome.cards.members,

@@ -8,6 +8,7 @@ import { ErrorState, Skeleton } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
 import { ensureSession } from '@/lib/supabase';
 import { useChecklistRealtime } from '@/features/checklist/api';
+import { useExpensesRealtime } from '@/features/expenses/api';
 import { useTrip, useTripRealtime, type Trip } from './api';
 
 export type TripContext = { trip: Trip; me: string };
@@ -39,6 +40,7 @@ export function TripLayout() {
   const [moreOpen, setMoreOpen] = useState(false);
   useTripRealtime(tripId, qc);
   useChecklistRealtime(tripId, qc);
+  useExpensesRealtime(tripId, qc);
 
   if (trip.isPending || me.isPending) {
     return (

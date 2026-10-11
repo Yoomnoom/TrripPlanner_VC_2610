@@ -83,6 +83,12 @@ public/geo/       세계·한국 지도 데이터 (출처·라이선스: public/
 3. 배포 도메인을 Google 키 **리퍼러 제한**, Supabase `site_url`·추가 리다이렉트, Edge Function `APP_BASE_URL`(CORS)에 추가합니다.
 4. 상세 절차와 확인 방법은 `docs/HUMAN_TODO.md`의 최종 체크리스트를 따르세요.
 
+## 검증된 것과 아닌 것
+
+- **검증됨(2026-10-12):** typecheck·lint(접근성 규칙 포함)·vitest 217개·build·Playwright 스모크 6개(375px/1280px). 로컬 Supabase(Postgres 17.11)에서 마이그레이션 0001~0003과 `rls_smoke.sql`, 단계별 RLS 스크립트(읽기 전용 링크·복제·후기·저장·발자취·Storage). 실제 Gemini 호출(일정 생성·실내 대안·영수증 이미지·예약 추출·마법사), Frankfurter 환율, Open-Meteo 날씨.
+- **미검증:** Google 지도·Routes·Places 실응답(키 없음), OpenRouter(크레딧 없어 402), AI 회고 실호출(Gemini 429), 터치 드래그·캘린더 조작, 실제 영수증·예약 문서, 비행기 모드 실사용, 국가 기본 정보의 공식 출처 대조, 원격 배포(`supabase functions deploy`, Vercel).
+- **아직 없는 것:** PlacesProvider의 Google 구현체(검색은 직접 입력만). 상세는 `docs/HUMAN_TODO.md`.
+
 ## 알아둘 점
 
 - 초대 링크를 아는 사람은 누구나 입장할 수 있습니다. 링크가 새면 `공유 중지`/재발급으로 막으세요. 여권 사본 같은 민감 파일은 자료로 올리지 마세요.

@@ -1,5 +1,18 @@
 # HUMAN_TODO — 이 순서대로만 하면 되는 최종 체크리스트
 
+## 내가 가장 먼저 할 일 5가지
+1. **Google Cloud 결제 연결 + 월 예산 알림($10/$30) 먼저 설정**, 그다음 API 3개 활성화 (1-1)
+2. **Google 키 2개(브라우저 키는 리퍼러 제한, 서버 키는 API 제한) + Map ID 발급** → `.env.local`, `supabase/functions/.env`에 입력 (1-2)
+3. **`supabase/functions/.env`에 `DAILY_LIMIT_AI=30` 추가**, OpenRouter 크레딧 충전(현재 402) 또는 그 제공자는 쓰지 않기 (1-3)
+4. **Supabase 프로젝트 생성 → 익명 로그인 켜기 → `db push` · `functions deploy` · `secrets set`** (2-1, 2-2)
+5. **Vercel 배포 후 배포 도메인을 Google 키 리퍼러·Supabase `site_url`·`APP_BASE_URL`에 추가**하고 `docs/QA_CHECKLIST.md` 플로우 1·2 확인 (2-3)
+
+## 키 입력 후 필요한 개발 작업 (아직 구현되지 않음)
+- **PlacesProvider의 Google 구현체가 없어요.** 지금 장소 검색·탐색은 직접 입력만 되고(`src/providers/places.ts`는 인터페이스+직접 입력 구현만 있음), 키를 넣어도 자동완성·상세·사진·좌표 조회는 켜지지 않아요. 키 입력 후 Google 구현체(검색/상세/좌표, Places API New)를 추가하고 `getPlacesProvider()`가 `googleEnabled`일 때 반환하도록 연결해야 해요. 장소 좌표가 생기면 이동 칩·지도 핀·오프라인 현지어 카드도 함께 완전히 동작해요.
+- 같은 이유로 새 여행의 도시 자동완성(현재는 나라 선택 + 도시 직접 입력)도 이때 교체해요.
+
+---
+
 순서는 **① 키 입력 → ② 마이그레이션·함수 배포 → ③ UNVERIFIED 항목 검증**입니다. 각 항목에 단계 / 예상 소요 / 확인 방법 / 실패 시 증상을 적었습니다.
 키는 **대화에 붙여넣지 말고** 표시된 위치에만 넣으세요. 비용이 드는 설정(결제, 유료 AI)은 직접 판단하세요.
 

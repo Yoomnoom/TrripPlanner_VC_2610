@@ -20,6 +20,17 @@ export function createFakeClient(): AiClient {
           })),
         });
       }
+      if ((req.jsonSchema as { required?: string[] }).required?.includes('merchant')) {
+        return JSON.stringify({
+          merchant: '테스트 식당',
+          date: '2026-10-10',
+          total: 1480,
+          currency: 'JPY',
+          categoryGuess: 'food',
+          items: [{ name: '라멘', amount: 1480 }],
+          confidence: 0.9,
+        });
+      }
       const ctx = req.user.match(/^CONTEXT: (.*)$/m);
       const context = ctx
         ? (JSON.parse(ctx[1]) as { trip?: { dayCount?: number; destinations?: { city?: string | null }[] } })

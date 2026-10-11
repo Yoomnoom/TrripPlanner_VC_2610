@@ -76,3 +76,9 @@ export const formatMdWeekday = (ymd: string) => {
   const [y, m, d] = ymd.split('-').map(Number);
   return `${formatMd(ymd)}(${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
 };
+
+/** Day index of `ymd` within the trip, or null when it falls outside it. */
+export const dayIndexOf = (start: string, ymd: string, dayCount: number) => {
+  const i = daysBetween(start, ymd);
+  return i >= 0 && i < dayCount ? i : null;
+};

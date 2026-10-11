@@ -111,6 +111,34 @@ export const INDOOR_JSON_SCHEMA = {
   },
 };
 
+/** ai-receipt (SPEC C-5). */
+export const RECEIPT_SYSTEM = `이미지는 영수증이다. 상호명, 날짜(YYYY-MM-DD), 합계 금액(숫자만), 통화(ISO 4217 3글자), 분류 추정, 품목을 JSON 스키마대로 추출한다. 보이지 않는 값은 null. 금액에서 천 단위 구분 기호는 제거한다. 추정이 불확실하면 confidence를 낮춘다.
+분류(categoryGuess)는 transport, lodging, food, shopping, ticket, other 중 하나. 항상 JSON 스키마만 출력한다.`;
+
+/** JSON Schema twin of ReceiptResult. */
+export const RECEIPT_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['merchant', 'date', 'total', 'currency', 'categoryGuess', 'items', 'confidence'],
+  properties: {
+    merchant: nullable('string'),
+    date: nullable('string', { pattern: '^\\d{4}-\\d{2}-\\d{2}$' }),
+    total: nullable('number'),
+    currency: nullable('string', { pattern: '^[A-Z]{3}$' }),
+    categoryGuess: { type: 'string', enum: ['transport', 'lodging', 'food', 'shopping', 'ticket', 'other'] },
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['name', 'amount'],
+        properties: { name: { type: 'string' }, amount: { type: 'number' } },
+      },
+    },
+    confidence: { type: 'number' },
+  },
+};
+
 /** Tiny schema for the connection test. */
 export const PING_JSON_SCHEMA = {
   type: 'object',

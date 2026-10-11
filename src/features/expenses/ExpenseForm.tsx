@@ -3,10 +3,16 @@ import { copy } from '@/copy';
 import { btn, inputCls } from '@/components/styles';
 import { Field } from '@/components/ui-kit';
 import type { Member } from '@/features/trips/api';
+import { aiErrorMessage, functionErrorCode } from '@/features/chat/api';
 import { getFxRate } from '@/lib/fx';
+import { receiptPath as makeReceiptPath } from '@/lib/files';
+import { resizeToJpeg } from '@/lib/image';
+import { supabase } from '@/lib/supabase';
 import { CURRENCIES, formatKrw, formatMoney, parseQuickInput, splitByWeights, toKrw } from '@/lib/money';
-import { dayYmd, formatMdWeekday } from '@/lib/trip';
+import { dayIndexOf, dayYmd, formatMdWeekday } from '@/lib/trip';
 import { EXPENSE_CATEGORIES, LABELS_KO, type ExpenseCategory, type PaymentMethod } from '@/types/domain';
+import type { z } from 'zod';
+import type { ReceiptResult as ReceiptSchema } from '@/schemas/ai';
 import type { ExpenseInput, ExpenseWithSplits } from './api';
 
 const LAST_CURRENCY = 'tp:last-currency';
@@ -18,11 +24,20 @@ const lastCurrency = () => {
   }
 };
 
+type ReceiptResult = z.infer<typeof ReceiptSchema>;
 type Mode = 'equal' | 'ratio' | 'amount';
+
+export type ExpensePrefill = Partial<
+  Pick<
+    ExpenseInput,
+    'title' | 'amount' | 'currency' | 'category' | 'spent_on' | 'receipt_path' | 'place_label'
+  >
+>;
 
 export interface FormContext {
   members: Member[];
   meId: string | null;
+  tripId: string;
   tripStart: string;
   dayCount: number;
   /** Today's Day index when the trip is under way, else null. */
@@ -61,7 +76,19 @@ export function ExpenseForm({
   const [rateNote, setRateNote] = useState('');
   const [category, setCategory] = useState<string>(initial?.category ?? prefill?.category ?? 'food');
   const [payment, setPayment] = useState<string>(initial?.payment_method ?? 'card');
-  const [day, setDay] = useState<number | null>(initial ? initial.day_index : ctx.todayIndex);
+  const [day, setDay] = useState<number | null>(
+    initial
+      ? initial.day_index
+      : prefill?.spent_on
+        ? dayIndexOf(ctx.tripStart, prefill.spent_on, ctx.dayCount)
+        : ctx.todayIndex,
+  );
+  const [spentOn, setSpentOn] = useState<string | null>(initial?.spent_on ?? prefill?.spent_on ?? null);
+  const [receipt, setReceipt] = useState<string | null>(
+    initial?.receipt_path ?? prefill?.receipt_path ?? null,
+  );
+  const [receiptBusy, setReceiptBusy] = useState(false);
+  const [receiptMsg, setReceiptMsg] = useState('');
   const [paidBy, setPaidBy] = useState(initial?.paid_by ?? ctx.meId ?? ctx.members[0]?.id ?? '');
   const [placeId, setPlaceId] = useState<string | null>(initial?.place_id ?? null);
   const [placeLabel, setPlaceLabel] = useState(initial?.place_label ?? prefill?.place_label ?? '');
@@ -115,6 +142,42 @@ export function ExpenseForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
+  /** Photo -> resize -> Storage -> ai-receipt -> pre-fill only. The user still checks and saves. */
+  const readReceipt = async (file: File) => {
+    if (!supabase) return;
+    setReceiptBusy(true);
+    setReceiptMsg('');
+    try {
+      const blob = await resizeToJpeg(file);
+      const path = makeReceiptPath(ctx.tripId, crypto.randomUUID());
+      const up = await supabase.storage.from('receipts').upload(path, blob, { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      setReceipt(path);
+      const { data, error } = await supabase.functions.invoke('ai-receipt', {
+        body: { tripId: ctx.tripId, imagePath: path },
+      });
+      if (error) {
+        setReceiptMsg(`${aiErrorMessage(await functionErrorCode(error))} ${copy.expenses.receiptManual}`);
+        return;
+      }
+      const r = (data as { data: { receipt: ReceiptResult } }).data.receipt;
+      if (r.merchant) setTitle(r.merchant);
+      if (r.total !== null) setAmount(String(r.total));
+      if (r.currency && (CURRENCIES as readonly string[]).includes(r.currency)) pickCurrency(r.currency);
+      setCategory(r.categoryGuess);
+      if (r.date) {
+        setSpentOn(r.date);
+        setDay(dayIndexOf(ctx.tripStart, r.date, ctx.dayCount));
+      }
+      setMore(true);
+      setReceiptMsg(r.confidence < 0.5 ? copy.expenses.receiptLow : copy.expenses.receiptFilled);
+    } catch {
+      setReceiptMsg(`${copy.expenses.receiptFailed} ${copy.expenses.receiptManual}`);
+    } finally {
+      setReceiptBusy(false);
+    }
+  };
+
   const applyQuick = (text: string) => {
     setQuick(text);
     const p = parseQuickInput(text);
@@ -166,7 +229,7 @@ export function ExpenseForm({
     onSubmit({
       id,
       day_index: day,
-      spent_on: prefill?.spent_on ?? initial?.spent_on ?? (day !== null ? dayYmd(ctx.tripStart, day) : null),
+      spent_on: spentOn ?? (day !== null ? dayYmd(ctx.tripStart, day) : null),
       title: title.trim(),
       category,
       amount: amountNum,
@@ -178,7 +241,7 @@ export function ExpenseForm({
       place_id: placeId,
       place_label: placeLabel.trim() || null,
       memo: memo.trim() || null,
-      receipt_path: initial?.receipt_path ?? prefill?.receipt_path ?? null,
+      receipt_path: receipt,
       splits,
     });
   };
@@ -197,6 +260,30 @@ export function ExpenseForm({
           />
         </Field>
       )}
+
+      <div className="grid gap-1">
+        <label className={`${btn.ghost} cursor-pointer ${receiptBusy ? 'opacity-50' : ''}`}>
+          {receiptBusy ? copy.expenses.receiptReading : copy.expenses.receiptButton}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            disabled={receiptBusy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (file) void readReceipt(file);
+            }}
+          />
+        </label>
+        {receipt && !receiptMsg && <p className="text-xs text-muted">{copy.expenses.receiptAttached}</p>}
+        {receiptMsg && (
+          <p role="status" className="text-sm font-semibold text-muted">
+            {receiptMsg}
+          </p>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-1.5" aria-label={copy.expenses.chips}>
         {validMoney && (

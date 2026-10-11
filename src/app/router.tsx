@@ -11,6 +11,8 @@ import { ChecklistPage } from '@/features/checklist/ChecklistPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { ChatPage } from '@/features/chat/ChatPage';
 import { ExplorePage } from '@/features/explore/ExplorePage';
+import { FilesPage } from '@/features/files/FilesPage';
+import { ReservationsPage } from '@/features/reservations/ReservationsPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -27,8 +29,8 @@ export const router = createBrowserRouter([
       { path: 'chat', element: <ChatPage /> },
       { path: 'plan', element: <PlanPage /> },
       { path: 'explore', element: <ExplorePage /> },
-      { path: 'reservations', element: <Placeholder title={r.reservations} /> },
-      { path: 'files', element: <Placeholder title={r.files} /> },
+      { path: 'reservations', element: <ReservationsPage /> },
+      { path: 'files', element: <FilesPage /> },
       { path: 'checklist', element: <ChecklistPage /> },
       { path: 'expenses', element: <ExpensesPage /> },
       { path: 'members', element: <MembersPage /> },

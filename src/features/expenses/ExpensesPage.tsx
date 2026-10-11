@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { copy } from '@/copy';
@@ -13,7 +13,8 @@ import { formatKrw, formatMoney } from '@/lib/money';
 import { dayYmd, formatMdWeekday, todayYmd, tripDays } from '@/lib/trip';
 import { LABELS_KO, type ExpenseCategory, type PaymentMethod } from '@/types/domain';
 import { useDeleteExpense, useExpenses, useSaveExpense, useSettlements, type ExpenseWithSplits } from './api';
-import { ExpenseForm, type FormContext } from './ExpenseForm';
+import { ExpenseForm, type ExpensePrefill, type FormContext } from './ExpenseForm';
+import { signedUrl } from '@/features/files/api';
 import { ListTab } from './ListTab';
 import { SettleTab } from './SettleTab';
 import { SummaryTab } from './SummaryTab';
@@ -35,7 +36,17 @@ export function ExpensesPage() {
   const save = useSaveExpense(trip.id);
   const del = useDeleteExpense(trip.id);
 
-  const [formOpen, setFormOpen] = useState<{ edit?: ExpenseWithSplits } | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // "비용으로 추가" on a reservation navigates here with a prefill; open the form once and clear the state.
+  const statePrefill = (location.state as { prefill?: ExpensePrefill } | null)?.prefill;
+  const [formOpen, setFormOpen] = useState<{ edit?: ExpenseWithSplits; prefill?: ExpensePrefill } | null>(
+    statePrefill ? { prefill: statePrefill } : null,
+  );
+  useEffect(() => {
+    if (statePrefill) navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on arrival
+  }, []);
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const dayCount = tripDays(trip.start_date, trip.end_date);
@@ -49,12 +60,13 @@ export function ExpensesPage() {
     return {
       members: members.data,
       meId,
+      tripId: trip.id,
       tripStart: trip.start_date,
       dayCount,
       todayIndex: idx >= 0 && idx < dayCount ? idx : null,
       places: (places.data ?? []).map((p) => ({ id: p.id, name: p.name })),
     };
-  }, [members.data, meId, trip.start_date, dayCount, places.data]);
+  }, [members.data, meId, trip.id, trip.start_date, dayCount, places.data]);
 
   if (expenses.isPending || members.isPending || settlements.isPending) {
     return (
@@ -151,6 +163,7 @@ export function ExpensesPage() {
             key={formOpen.edit?.id ?? 'new'}
             ctx={ctx}
             initial={formOpen.edit}
+            prefill={formOpen.prefill}
             onSubmit={(input) => {
               save.mutate(input);
               setFormOpen(null);
@@ -175,6 +188,26 @@ export function ExpensesPage() {
               <dd>{copy.expenses.payment[detail.payment_method as PaymentMethod]}</dd>
               <dt className="text-muted">{copy.expenses.paidBy}</dt>
               <dd>{memberName(detail.paid_by)}</dd>
+              {detail.receipt_path && (
+                <>
+                  <dt className="text-muted">{copy.expenses.receipt}</dt>
+                  <dd>
+                    <button
+                      type="button"
+                      className="min-h-11 font-semibold text-primary"
+                      onClick={() =>
+                        void signedUrl('receipts', detail.receipt_path!).then((u) =>
+                          u
+                            ? window.open(u, '_blank', 'noopener,noreferrer')
+                            : toast.error(copy.files.openFailed),
+                        )
+                      }
+                    >
+                      {copy.expenses.receiptView}
+                    </button>
+                  </dd>
+                </>
+              )}
               <dt className="text-muted">{copy.plan.day}</dt>
               <dd>
                 {detail.day_index === null

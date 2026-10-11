@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dayIndexOf,
   dayYmd,
   defaultTitle,
   formatMdWeekday,
@@ -66,5 +67,14 @@ describe('day labels', () => {
   });
   it('formats with weekday', () => {
     expect(formatMdWeekday('2026-10-09')).toBe('10월 9일(금)');
+  });
+});
+
+describe('dayIndexOf', () => {
+  it('maps dates inside the trip and rejects outside ones', () => {
+    expect(dayIndexOf('2026-10-09', '2026-10-09', 4)).toBe(0);
+    expect(dayIndexOf('2026-10-09', '2026-10-12', 4)).toBe(3);
+    expect(dayIndexOf('2026-10-09', '2026-10-13', 4)).toBeNull();
+    expect(dayIndexOf('2026-10-09', '2026-10-08', 4)).toBeNull();
   });
 });

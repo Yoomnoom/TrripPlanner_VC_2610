@@ -60,7 +60,7 @@ describe('settlement', () => {
 
   it('5. 속성: 잔액 합 0, 송금 후 모두 0', () => {
     let seed = 42;
-    const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+    const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
     for (let run = 0; run < 200; run++) {
       const ids = ['A', 'B', 'C', 'D', 'E'].slice(0, 2 + Math.floor(rnd() * 4));
       const expenses = [];

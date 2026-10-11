@@ -1,4 +1,7 @@
-export const toMin = (hhmm: string) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+export const toMin = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
 export const toHHmm = (min: number) =>
   `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 

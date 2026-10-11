@@ -8,7 +8,8 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
 });
 
-type SessionState = { status: 'loading' } | { status: 'ready'; userId: string } | { status: 'error'; code: string };
+type SessionState =
+  { status: 'loading' } | { status: 'ready'; userId: string } | { status: 'error'; code: string };
 
 /** Blocks the app until an (anonymous) Supabase session exists. */
 function SessionGate({ children }: { children: ReactNode }) {
@@ -19,7 +20,8 @@ function SessionGate({ children }: { children: ReactNode }) {
     let alive = true;
     ensureSession().then(
       (userId) => alive && setState({ status: 'ready', userId }),
-      (e: unknown) => alive && setState({ status: 'error', code: e instanceof Error ? e.message : 'UNKNOWN' }),
+      (e: unknown) =>
+        alive && setState({ status: 'error', code: e instanceof Error ? e.message : 'UNKNOWN' }),
     );
     return () => {
       alive = false;
@@ -32,7 +34,9 @@ function SessionGate({ children }: { children: ReactNode }) {
   }
   return (
     <main className="mx-auto max-w-xl p-6">
-      <p className="font-semibold">{state.code === 'ENV_MISSING' ? copy.session.envMissing : copy.session.failed}</p>
+      <p className="font-semibold">
+        {state.code === 'ENV_MISSING' ? copy.session.envMissing : copy.session.failed}
+      </p>
       {state.code !== 'ENV_MISSING' && (
         <button
           type="button"

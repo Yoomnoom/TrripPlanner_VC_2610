@@ -1,18 +1,42 @@
 export type Id = string;
-export interface ExpenseLite { id: Id; paidBy: Id; amountKrw: number }
-export interface SplitLite { expenseId: Id; memberId: Id; shareKrw: number }
-export interface SettlementLite { fromMember: Id; toMember: Id; amountKrw: number }
-export interface Transfer { from: Id; to: Id; amountKrw: number }
+export interface ExpenseLite {
+  id: Id;
+  paidBy: Id;
+  amountKrw: number;
+}
+export interface SplitLite {
+  expenseId: Id;
+  memberId: Id;
+  shareKrw: number;
+}
+export interface SettlementLite {
+  fromMember: Id;
+  toMember: Id;
+  amountKrw: number;
+}
+export interface Transfer {
+  from: Id;
+  to: Id;
+  amountKrw: number;
+}
 
 /** +면 받을 돈, -면 줄 돈. 정산 완료분 반영. */
 export function computeBalances(
-  memberIds: Id[], expenses: ExpenseLite[], splits: SplitLite[], settlements: SettlementLite[],
+  memberIds: Id[],
+  expenses: ExpenseLite[],
+  splits: SplitLite[],
+  settlements: SettlementLite[],
 ): Record<Id, number> {
   const bal: Record<Id, number> = Object.fromEntries(memberIds.map((id) => [id, 0]));
-  const add = (id: Id, v: number) => { bal[id] = (bal[id] ?? 0) + v; };
+  const add = (id: Id, v: number) => {
+    bal[id] = (bal[id] ?? 0) + v;
+  };
   for (const e of expenses) add(e.paidBy, e.amountKrw);
   for (const s of splits) add(s.memberId, -s.shareKrw);
-  for (const t of settlements) { add(t.fromMember, t.amountKrw); add(t.toMember, -t.amountKrw); }
+  for (const t of settlements) {
+    add(t.fromMember, t.amountKrw);
+    add(t.toMember, -t.amountKrw);
+  }
   return bal;
 }
 
@@ -27,11 +51,13 @@ export function minimizeTransfers(balances: Record<Id, number>): Transfer[] {
   creditors.sort((a, b) => b.amt - a.amt);
   debtors.sort((a, b) => b.amt - a.amt);
   const out: Transfer[] = [];
-  let i = 0, j = 0;
+  let i = 0,
+    j = 0;
   while (i < debtors.length && j < creditors.length) {
     const pay = Math.min(debtors[i].amt, creditors[j].amt);
     out.push({ from: debtors[i].id, to: creditors[j].id, amountKrw: pay });
-    debtors[i].amt -= pay; creditors[j].amt -= pay;
+    debtors[i].amt -= pay;
+    creditors[j].amt -= pay;
     if (debtors[i].amt === 0) i++;
     if (creditors[j].amt === 0) j++;
   }

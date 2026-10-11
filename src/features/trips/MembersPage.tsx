@@ -7,6 +7,7 @@ import { Avatar, ErrorState, Field, Skeleton } from '@/components/ui-kit';
 import { btn, inputCls } from '@/components/styles';
 import { formatMd, MEMBER_COLORS, nicknameSchema } from '@/lib/trip';
 import { useMembers, useRemoveMember, useUpdateMyMember, type Member } from './api';
+import { ViewLinkSection } from '@/features/share/ViewLinkSection';
 import { InviteSheet, ShareMenuSheet } from './InviteSheet';
 import type { TripContext } from './TripLayout';
 
@@ -99,6 +100,7 @@ export function MembersPage() {
         ))}
       </ul>
       <p className="mt-3 text-xs text-muted">{copy.members.rejoinNote}</p>
+      <ViewLinkSection trip={trip} isOwner={isOwner} />
 
       <InviteSheet trip={trip} isOwner={isOwner} open={inviteOpen} onClose={() => setInviteOpen(false)} />
       <ShareMenuSheet trip={trip} isOwner={isOwner} open={shareOpen} onClose={() => setShareOpen(false)} />

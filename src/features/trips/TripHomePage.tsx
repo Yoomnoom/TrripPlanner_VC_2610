@@ -12,6 +12,14 @@ import { DriverCard } from '@/features/home/DriverCard';
 import { loadCards } from '@/features/offline/prepare';
 import { nameForDriver } from '@/lib/offline';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Sheet } from '@/components/Sheet';
+import { useReviews } from '@/features/reviews/api';
+import { unreviewed as unreviewedPlaces } from '@/lib/reviews';
+import { setLastNickname } from '@/lib/device';
+import { toast } from 'sonner';
+import { CopyTripForm } from '@/features/share/CopyTripForm';
+import { useDuplicateTrip } from '@/features/share/api';
 import { AfterBlock, DuringBlock, UpcomingReservations } from '@/features/home/PhaseBlocks';
 import { QuickExpenseSheet } from '@/features/home/QuickExpenseSheet';
 import { useDestinations, useTripWeather } from '@/features/info/api';
@@ -83,6 +91,10 @@ export function TripHomePage() {
     );
     return minimizeTransfers(bal).length;
   })();
+  const reviews = useReviews(trip.id);
+  const navigate = useNavigate();
+  const duplicate = useDuplicateTrip(trip.id);
+  const [copyOpen, setCopyOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [driver, setDriver] = useState<Place | null>(null);
   const offlineCards = useQuery({
@@ -251,7 +263,21 @@ export function TripHomePage() {
           onDriver={setDriver}
         />
       )}
-      {phase.kind === 'after' && <AfterBlock tripId={trip.id} unsettled={unsettled} />}
+      {phase.kind === 'after' && (
+        <AfterBlock
+          tripId={trip.id}
+          unsettled={unsettled}
+          unreviewed={unreviewedPlaces(places.data ?? [], reviews.data ?? [], myMemberId).length}
+        />
+      )}
+
+      <button
+        type="button"
+        className="mt-3 min-h-11 text-sm font-semibold text-muted"
+        onClick={() => setCopyOpen(true)}
+      >
+        {copy.share.copyTrip}
+      </button>
 
       <ul className="mt-3 grid grid-cols-2 gap-3">
         {cards.map((card) => (
@@ -292,6 +318,25 @@ export function TripHomePage() {
         }
         onClose={() => setDriver(null)}
       />
+      <Sheet open={copyOpen} onClose={() => setCopyOpen(false)} title={copy.share.copyTrip}>
+        {copyOpen && (
+          <CopyTripForm
+            defaultTitle={`${trip.title} ${copy.share.copySuffix}`}
+            withChecklist
+            busy={duplicate.isPending}
+            onSubmit={(v) =>
+              duplicate.mutate(v, {
+                onSuccess: (id) => {
+                  setLastNickname(v.nickname);
+                  toast.success(copy.share.copied2);
+                  navigate(`/t/${id}`);
+                },
+                onError: () => toast.error(copy.common.saveFailed),
+              })
+            }
+          />
+        )}
+      </Sheet>
       <InviteSheet trip={trip} isOwner={isOwner} open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );

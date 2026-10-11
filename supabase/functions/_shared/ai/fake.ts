@@ -45,6 +45,14 @@ export function createFakeClient(): AiClient {
           confidence: 0.9,
         });
       }
+      if ((req.jsonSchema as { required?: string[] }).required?.includes('highlights')) {
+        return JSON.stringify({
+          title: '테스트 여행 회고',
+          summary: '테스트용 가짜 AI가 만든 회고예요.',
+          highlights: ['첫째 하이라이트', '둘째 하이라이트', '셋째 하이라이트'],
+          dayNotes: [{ dayIndex: 0, line: '첫날은 가볍게 시작했어요' }],
+        });
+      }
       const ctx = req.user.match(/^CONTEXT: (.*)$/m);
       const context = ctx
         ? (JSON.parse(ctx[1]) as { trip?: { dayCount?: number; destinations?: { city?: string | null }[] } })

@@ -68,3 +68,7 @@
 2026-10-12 · M17 · 날씨 쿼리는 Map을 담고 있어 영속화에서 제외, 채팅/AI 상태/초대/발자취/내 저장도 제외 · 직렬화 불가 + SPEC "여행 관련 쿼리만"
 2026-10-12 · M17 · 오프라인 시작 시 세션은 localStorage의 저장된 Supabase 세션 user id로 대체 · 갱신 실패해도 캐시된 여행을 열 수 있게(UNVERIFIED: 실제 비행기 모드)
 2026-10-12 · M17 · 새 의존성 idb-keyval, @tanstack/react-query-persist-client, @tanstack/query-async-storage-persister(쿼리 영속화·큐 저장, SPEC F-3-4 지정)
+2026-10-12 · M18 · 읽기 전용 링크는 익명 세션이 자동 생성되는 SPA 라우트(/v/:token)로 구현 · 앱 전체가 SessionGate를 쓰므로 "로그인 없이" 충족, noindex meta는 라우트 진입 시 head에 주입
+2026-10-12 · M18 · OG 미리보기 태그는 SPA라 서버 렌더 없이 불가 → BACKLOG(배포 단계에서 엣지 함수/프리렌더 필요)
+2026-10-12 · M18 · runAi 실패 메시지에 제공자별 원인을 모두 기록(키·문서 내용은 제외) · 마지막 제공자(OpenRouter 402)가 실제 원인(Gemini 429)을 가려서 진단이 어려웠음
+2026-10-12 · M18 · 회고 프롬프트는 장소·평점·후기 코멘트만 전달(금액·확인번호·멤버 이름/ID 제외), 후기 코멘트는 사용자 작성 텍스트라 개인정보가 있을 수 있어 HUMAN_TODO에 점검 항목

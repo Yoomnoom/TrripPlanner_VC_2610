@@ -30,3 +30,6 @@ export function directionsLink(
 /** "Find nearby": a Google Maps search centered on a point. */
 export const nearbyLink = (query: string, at: { lat: number; lng: number }) =>
   `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${at.lat},${at.lng},16z`;
+
+/** Read-only share link: `https://{host}/v/{token}`. */
+export const viewUrl = (origin: string, token: string) => `${origin.replace(/\/$/, '')}/v/${token}`;

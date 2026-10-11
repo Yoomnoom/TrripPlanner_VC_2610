@@ -17,6 +17,8 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { SavedPage } from '@/features/saved/SavedPage';
 import { InfoPage } from '@/features/info/InfoPage';
 import { OfflinePage } from '@/features/offline/OfflinePage';
+import { RecapPage } from '@/features/recap/RecapPage';
+import { SharedTripPage } from '@/features/share/SharedTripPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -39,6 +41,7 @@ export const router = createBrowserRouter([
       { path: 'expenses', element: <ExpensesPage /> },
       { path: 'info', element: <InfoPage /> },
       { path: 'offline', element: <OfflinePage /> },
+      { path: 'recap', element: <RecapPage /> },
       { path: 'members', element: <MembersPage /> },
     ],
   },
@@ -46,6 +49,7 @@ export const router = createBrowserRouter([
     path: '/footprints',
     lazy: async () => ({ Component: (await import('@/features/footprints/FootprintsPage')).default }),
   },
+  { path: '/v/:viewToken', element: <SharedTripPage /> },
   { path: '/saved', element: <SavedPage /> },
   { path: '/settings', element: <SettingsPage /> },
   { path: '*', element: <Placeholder title={r.notFound} /> },

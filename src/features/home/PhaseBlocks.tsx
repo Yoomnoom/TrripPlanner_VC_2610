@@ -176,9 +176,28 @@ export function UpcomingReservations({ tripId, items }: { tripId: string; items:
 }
 
 /** After the trip: unsettled money and the footprint suggestion. */
-export function AfterBlock({ tripId, unsettled }: { tripId: string; unsettled: number }) {
+export function AfterBlock({
+  tripId,
+  unsettled,
+  unreviewed,
+}: {
+  tripId: string;
+  unsettled: number;
+  unreviewed: number;
+}) {
   return (
     <section className="mt-3 grid gap-2" aria-label={copy.home.after}>
+      <Link
+        to={`/t/${tripId}/recap`}
+        className="rounded-card bg-hero p-4 font-semibold text-white shadow-card"
+      >
+        {copy.home.recap}
+      </Link>
+      {unreviewed > 0 && (
+        <Link to={`/t/${tripId}/plan`} className="rounded-card bg-surface p-4 font-semibold shadow-card">
+          {copy.home.unreviewed(unreviewed)}
+        </Link>
+      )}
       {unsettled > 0 && (
         <Link
           to={`/t/${tripId}/expenses?tab=settle`}

@@ -34,6 +34,7 @@ export async function runAi<T>(opts: RunAiOptions<T>): Promise<AiResult<T>> {
   if (order.length === 0) throw new AiError('AI_NO_KEY', 'No AI provider is configured');
 
   let lastError = 'unknown';
+  const failures: string[] = [];
   for (const provider of order) {
     const client = opts.clients[provider]!;
     const model = opts.models[provider];
@@ -61,6 +62,8 @@ export async function runAi<T>(opts: RunAiOptions<T>): Promise<AiResult<T>> {
         if (attempt === 0 && (status === undefined || status === 429 || status >= 500)) await sleep(800);
       }
     }
+    // every attempt of this provider failed: remember why (the message names the provider, never a key)
+    failures.push(`${provider}: ${lastError}`);
   }
-  throw new AiError('AI_FAILED', lastError);
+  throw new AiError('AI_FAILED', failures.length > 0 ? failures.join(' | ') : lastError);
 }

@@ -54,6 +54,10 @@ import { useDestinations, useTripWeather } from '@/features/info/api';
 import { describeCode, type DayWeather } from '@/lib/weather';
 import { prepareOfflineCards } from '@/features/offline/prepare';
 import { useOnline } from '@/lib/offlineStore';
+import { ReviewSheet } from '@/features/reviews/ReviewSheet';
+import { useDeleteReview, usePhotos, useReviews, useSaveReview } from '@/features/reviews/api';
+import { canReview, summarize } from '@/lib/reviews';
+import { useMembers } from '@/features/trips/api';
 import { IndoorSheet } from './IndoorSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
@@ -64,7 +68,7 @@ const IDEAS = 'ideas';
 const dayId = (i: number) => `day:${i}`;
 
 export function PlanPage() {
-  const { trip } = useOutletContext<TripContext>();
+  const { trip, me } = useOutletContext<TripContext>();
   const places = usePlaces(trip.id);
   usePlacesRealtime(trip.id);
   const update = useUpdatePlaces(trip.id);
@@ -77,6 +81,15 @@ export function PlanPage() {
 
   const online = useOnline();
   const [savingOffline, setSavingOffline] = useState(false);
+  const members = useMembers(trip.id);
+  const reviews = useReviews(trip.id);
+  const photos = usePhotos(trip.id);
+  const saveReview = useSaveReview(trip.id);
+  const deleteReview = useDeleteReview(trip.id);
+  const [reviewFor, setReviewFor] = useState<Place | null>(null);
+  const summaries = useMemo(() => summarize(reviews.data ?? []), [reviews.data]);
+  const myMember = members.data?.find((m) => m.user_id === me)?.id ?? null;
+  const reviewable = canReview(trip.start_date, todayYmd());
   const dests = useDestinations(trip.id);
   const weather = useTripWeather(trip, dests.list[0]);
   const [params, setParams] = useSearchParams();
@@ -417,6 +430,8 @@ export function PlanPage() {
                         onIndoor={
                           online && indoorDays.has(i) && isOutdoor(p) ? () => setIndoorFor(p) : undefined
                         }
+                        rating={summaries.get(p.id)}
+                        onReview={reviewable ? () => setReviewFor(p) : undefined}
                       />
                     </li>
                   ))}
@@ -469,6 +484,17 @@ export function PlanPage() {
           if (addTarget?.dayIndex != null) moveToDay(idea, addTarget.dayIndex);
           setAddTarget(null);
         }}
+      />
+      <ReviewSheet
+        place={reviewFor}
+        tripId={trip.id}
+        meMemberId={myMember}
+        members={members.data ?? []}
+        reviews={reviews.data ?? []}
+        photos={photos.data ?? []}
+        onClose={() => setReviewFor(null)}
+        onSave={(r) => myMember && saveReview.mutate({ ...r, memberId: myMember })}
+        onDelete={(id) => deleteReview.mutate(id)}
       />
       <IndoorSheet
         tripId={trip.id}
@@ -526,7 +552,21 @@ function Section({
   );
 }
 
-function PlaceCard({ place, onMenu, onIndoor }: { place: Place; onMenu: () => void; onIndoor?: () => void }) {
+type RatingSummary = { avg: number; count: number };
+
+function PlaceCard({
+  place,
+  onMenu,
+  onIndoor,
+  rating,
+  onReview,
+}: {
+  place: Place;
+  onMenu: () => void;
+  onIndoor?: () => void;
+  rating?: RatingSummary;
+  onReview?: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: place.id,
   });
@@ -555,6 +595,13 @@ function PlaceCard({ place, onMenu, onIndoor }: { place: Place; onMenu: () => vo
           <span className="rounded-full bg-primary-soft px-2 py-0.5 font-semibold text-primary">
             {LABELS_KO[place.category as keyof typeof LABELS_KO] ?? place.category}
           </span>
+          {rating && (
+            <span className="tabular inline-flex items-center gap-0.5 font-semibold text-amber-600">
+              <span aria-hidden>★</span>
+              <span className="sr-only">{copy.reviews.avgLabel}</span>
+              {rating.avg.toFixed(1)} <span className="font-normal text-muted">({rating.count})</span>
+            </span>
+          )}
           {place.note && (
             <span className="inline-flex items-center gap-0.5 text-muted" title={place.note}>
               <StickyNote className="size-3.5" aria-hidden />
@@ -564,6 +611,15 @@ function PlaceCard({ place, onMenu, onIndoor }: { place: Place; onMenu: () => vo
           )}
         </p>
       </div>
+      {onReview && (
+        <button
+          type="button"
+          onClick={onReview}
+          className="min-h-11 shrink-0 rounded-full border border-line px-3 text-xs font-bold"
+        >
+          {copy.reviews.write}
+        </button>
+      )}
       {onIndoor && (
         <button
           type="button"

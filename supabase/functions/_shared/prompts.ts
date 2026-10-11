@@ -201,6 +201,34 @@ export const RESERVATION_JSON_SCHEMA = {
   },
 };
 
+/** ai-recap (SPEC F-3-6). The recap can end up on a public read-only link, so it must stay free of private data. */
+export const RECAP_SYSTEM = `여행 회고를 짧고 따뜻한 문체로 쓴다. 항상 한국어로 답하고 JSON 스키마만 출력한다.
+- CONTEXT에 있는 장소·후기·평점만 근거로 쓴다. 후기에 없는 사실을 만들지 않는다.
+- 금액, 예약·확인번호, 사람 이름, 연락처 같은 개인정보는 쓰지 않는다. 이 회고는 공유 링크에 보일 수 있다.
+- title은 60자 이내, summary는 500자 이내, highlights는 3~5개(각 80자 이내), dayNotes는 Day별 한 줄(120자 이내)이다.
+- 후기가 적거나 없으면 일정 구성(장소 수, 일수, 분위기)을 바탕으로 담백하게 쓴다.`;
+
+/** JSON Schema twin of RecapResult. */
+export const RECAP_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'summary', 'highlights', 'dayNotes'],
+  properties: {
+    title: { type: 'string' },
+    summary: { type: 'string' },
+    highlights: { type: 'array', items: { type: 'string' } },
+    dayNotes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['dayIndex', 'line'],
+        properties: { dayIndex: { type: 'integer' }, line: { type: 'string' } },
+      },
+    },
+  },
+};
+
 /** Tiny schema for the connection test. */
 export const PING_JSON_SCHEMA = {
   type: 'object',

@@ -354,7 +354,6 @@ function ReservationForm({
       </div>
       <Field label={copy.files.title}>
         <input
-          autoFocus
           required
           className={inputCls}
           value={title}

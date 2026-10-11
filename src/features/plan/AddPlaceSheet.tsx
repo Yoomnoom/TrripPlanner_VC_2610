@@ -160,7 +160,6 @@ function AddForm({
         <form onSubmit={submit} className="grid gap-3">
           <Field label={copy.plan.name}>
             <input
-              autoFocus
               required
               className={inputCls}
               value={name}

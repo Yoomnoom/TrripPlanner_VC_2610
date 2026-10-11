@@ -76,6 +76,8 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
+      // Restored data may be hours old even though its timestamp is fresh: refetch active queries once restored.
+      onSuccess={() => void queryClient.invalidateQueries()}
       persistOptions={{
         persister,
         maxAge: PERSIST_MAX_AGE,
@@ -85,6 +87,9 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }}
     >
+      <a href="#main" className="skip-link">
+        {copy.common.skip}
+      </a>
       <OfflineBanner />
       <SessionGate>{children}</SessionGate>
       <Toaster position="top-center" />

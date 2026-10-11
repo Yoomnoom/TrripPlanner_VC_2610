@@ -226,7 +226,6 @@ function MetaForm({
     >
       <Field label={copy.files.title}>
         <input
-          autoFocus
           className={inputCls}
           value={title}
           maxLength={100}

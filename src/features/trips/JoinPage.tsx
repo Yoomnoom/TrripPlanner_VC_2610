@@ -82,7 +82,6 @@ export function JoinPage() {
         <Field label={copy.join.nickname} hint={copy.join.nicknameHint}>
           <input
             required
-            autoFocus
             className={inputCls}
             value={nickname}
             maxLength={20}

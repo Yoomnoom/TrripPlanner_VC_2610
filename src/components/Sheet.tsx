@@ -23,12 +23,22 @@ export function Sheet({
     if (!open && el.open) el.close();
   }, [open]);
 
+  // Click on the backdrop (the dialog element itself) closes the sheet; keyboard users have Esc and the close button.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onClick = (e: MouseEvent) => {
+      if (e.target === el) onClose();
+    };
+    el.addEventListener('click', onClick);
+    return () => el.removeEventListener('click', onClick);
+  }, [onClose]);
+
   return (
     <dialog
       ref={ref}
       aria-label={title}
       onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
       className="m-auto mb-0 w-full max-w-lg rounded-t-sheet bg-surface p-0 text-ink backdrop:bg-black/40 sm:mb-auto sm:rounded-sheet"
     >
       {open && (

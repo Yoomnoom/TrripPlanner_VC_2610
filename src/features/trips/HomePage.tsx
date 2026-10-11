@@ -11,7 +11,7 @@ export function HomePage() {
   const today = todayYmd();
 
   return (
-    <main className="mx-auto max-w-xl p-4 pb-24">
+    <main id="main" className="mx-auto max-w-xl p-4 pb-24">
       <header className="flex items-center justify-between py-2">
         <h1 className="text-2xl font-bold">{copy.list.title}</h1>
         <nav className="flex gap-1">

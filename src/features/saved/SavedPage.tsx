@@ -120,6 +120,7 @@ function Row({ item, onRemove }: { item: SavedPlace; onRemove: () => void }) {
           }}
         >
           <input
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- the user just chose to edit this field
             autoFocus
             className={inputCls}
             value={memo}

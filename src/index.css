@@ -49,3 +49,25 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Visible keyboard focus everywhere (the browser default is easy to lose on colored buttons). */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Skip link: first Tab stop, visible only when focused. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--color-hero);
+  color: #fff;
+  font-weight: 700;
+}
+.skip-link:focus {
+  top: 8px;
+}

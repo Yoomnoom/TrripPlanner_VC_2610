@@ -254,7 +254,6 @@ export function ExpenseForm({
       {!editing && (
         <Field label={copy.expenses.quick} hint={copy.expenses.quickHint}>
           <input
-            autoFocus
             className={inputCls}
             value={quick}
             placeholder={copy.expenses.quickPlaceholder}

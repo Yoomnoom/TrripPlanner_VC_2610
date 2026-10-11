@@ -106,9 +106,9 @@ export function TripLayout() {
         ))}
       </aside>
 
-      <div className="min-w-0 flex-1 pb-20 lg:pb-6">
+      <main id="main" className="min-w-0 flex-1 pb-20 lg:pb-6">
         <Outlet context={ctx} />
-      </div>
+      </main>
 
       <nav
         aria-label={copy.nav.menu}

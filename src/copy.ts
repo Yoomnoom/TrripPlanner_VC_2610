@@ -12,6 +12,7 @@ export const copy = {
     saveFailed: '저장하지 못했어요. 다시 시도해 주세요',
     loadFailed: '불러오지 못했어요',
     back: '뒤로',
+    skip: '본문으로 건너뛰기',
     people: (n: number) => `${n}명`,
   },
   nav: {
@@ -534,6 +535,13 @@ export const copy = {
     makeCopy: '복제하기',
     withChecklist: '체크리스트도 함께 복사',
     copyHint: '일정·목적지만 복사돼요. 비용·예약·자료·후기는 복사되지 않아요',
+  },
+  errors: {
+    title: '문제가 생겼어요',
+    body: '잠시 후 다시 시도해 주세요',
+    reload: '새로고침',
+    updated: '새 버전이 나왔어요',
+    updatedBody: '새로고침하면 최신 화면으로 이어서 쓸 수 있어요',
   },
   checklist: {
     heading: '체크리스트',

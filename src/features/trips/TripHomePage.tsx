@@ -5,6 +5,9 @@ import { copy } from '@/copy';
 import { Avatar, Skeleton } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
 import { formatDuration, formatRange, inviteUrl, todayYmd, tripPhase } from '@/lib/trip';
+import { Gauge } from '@/components/Gauge';
+import { useChecklist, useUpdateItems } from '@/features/checklist/api';
+import { pendingPreview, progress } from '@/lib/checklist';
 import { useMembers, useTripCounts } from './api';
 import { InviteSheet } from './InviteSheet';
 import { copyInvite } from './invite';
@@ -14,6 +17,12 @@ export function TripHomePage() {
   const { trip, me } = useOutletContext<TripContext>();
   const members = useMembers(trip.id);
   const counts = useTripCounts(trip.id);
+  const checklist = useChecklist(trip.id);
+  const updateItems = useUpdateItems(trip.id);
+  const items = checklist.data ?? [];
+  const pAll = progress(items);
+  const pBefore = progress(items, 'before');
+  const myMemberId = members.data?.find((m) => m.user_id === me)?.id ?? null;
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const isOwner = members.data?.some((m) => m.user_id === me && m.role === 'owner') ?? false;
@@ -58,7 +67,7 @@ export function TripHomePage() {
     {
       to: 'checklist',
       label: copy.tripHome.cards.checklist,
-      n: c && `${c.checklistDone}/${c.checklistTotal}`,
+      n: checklist.data && `${pAll.done}/${pAll.total}`,
     },
     {
       to: 'members',
@@ -121,6 +130,37 @@ export function TripHomePage() {
       <section className="mt-3 rounded-card bg-surface p-4 shadow-card" aria-label="D-day">
         <p className="text-sm text-muted">{formatRange(trip.start_date, trip.end_date)}</p>
         <p className="tabular text-3xl font-extrabold text-primary">{dLabel}</p>
+      </section>
+
+      <section className="mt-3 rounded-card bg-surface p-4 shadow-card" aria-label={copy.checklist.heading}>
+        <div className="flex justify-around">
+          <Gauge pct={pBefore.pct} label={copy.checklist.gaugeBefore} />
+          <Gauge pct={pAll.pct} label={copy.checklist.gaugeAll} />
+        </div>
+        <h2 className="mt-3 text-sm font-bold">{copy.checklist.homePreview}</h2>
+        {checklist.data && pendingPreview(items).length === 0 ? (
+          <p className="mt-1 text-sm text-muted">
+            {items.length === 0 ? copy.list.emptyHint : copy.checklist.homeAllDone}
+          </p>
+        ) : (
+          <ul className="mt-1">
+            {pendingPreview(items).map((i) => (
+              <li key={i.id}>
+                <label className="flex min-h-11 cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={i.checked}
+                    onChange={() =>
+                      updateItems.mutate([{ id: i.id, patch: { checked: true, checked_by: myMemberId } }])
+                    }
+                    className="size-5 accent-[var(--color-primary)]"
+                  />
+                  <span>{i.title}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <ul className="mt-3 grid grid-cols-2 gap-3">

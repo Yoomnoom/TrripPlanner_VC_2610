@@ -7,6 +7,7 @@ import { NewTripPage } from '@/features/trips/NewTripPage';
 import { TripHomePage } from '@/features/trips/TripHomePage';
 import { TripLayout } from '@/features/trips/TripLayout';
 import { PlanPage } from '@/features/plan/PlanPage';
+import { ChecklistPage } from '@/features/checklist/ChecklistPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -25,7 +26,7 @@ export const router = createBrowserRouter([
       { path: 'explore', element: <Placeholder title={r.explore} /> },
       { path: 'reservations', element: <Placeholder title={r.reservations} /> },
       { path: 'files', element: <Placeholder title={r.files} /> },
-      { path: 'checklist', element: <Placeholder title={r.checklist} /> },
+      { path: 'checklist', element: <ChecklistPage /> },
       { path: 'expenses', element: <Placeholder title={r.expenses} /> },
       { path: 'members', element: <MembersPage /> },
     ],

@@ -7,6 +7,7 @@ import { Sheet } from '@/components/Sheet';
 import { ErrorState, Skeleton } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
 import { ensureSession } from '@/lib/supabase';
+import { useChecklistRealtime } from '@/features/checklist/api';
 import { useTrip, useTripRealtime, type Trip } from './api';
 
 export type TripContext = { trip: Trip; me: string };
@@ -37,6 +38,7 @@ export function TripLayout() {
   const me = useQuery({ queryKey: ['me'], queryFn: ensureSession, staleTime: Infinity });
   const [moreOpen, setMoreOpen] = useState(false);
   useTripRealtime(tripId, qc);
+  useChecklistRealtime(tripId, qc);
 
   if (trip.isPending || me.isPending) {
     return (

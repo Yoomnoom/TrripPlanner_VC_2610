@@ -145,3 +145,83 @@ describe('reservations', () => {
     expect(isFixedItem({ type: 'ticket' })).toBe(false);
   });
 });
+
+import { followUpPlaces, followUps, fromParse } from '@/lib/reservations';
+
+describe('reservation auto-fill', () => {
+  const parsed = {
+    type: 'lodging',
+    title: 'Hotel 숙박',
+    startsAt: '2026-11-20T15:00',
+    endsAt: '2026-11-23T11:00',
+    confirmationNo: '4482-9917',
+    locationName: 'Hotel Sakura',
+    amount: 54600,
+    currency: 'JPY',
+    note: null,
+    confidence: 0.9,
+  };
+  const trip = { start: '2026-11-20', dayCount: 4 };
+  it('maps an extraction to form strings and falls back for unknown types', () => {
+    expect(fromParse(parsed)).toMatchObject({
+      type: 'lodging',
+      starts: '2026-11-20T15:00',
+      no: '4482-9917',
+      amount: '54600',
+      currency: 'JPY',
+      note: 'Hotel Sakura',
+    });
+    expect(
+      fromParse({ ...parsed, type: 'weird', amount: null, startsAt: null, currency: null }),
+    ).toMatchObject({ type: 'other', amount: '', starts: '', currency: 'KRW' });
+  });
+  it('offers follow-ups only when they make sense for the trip', () => {
+    const base = {
+      type: 'lodging',
+      starts_at: '2026-11-20T15:00:00',
+      ends_at: '2026-11-23T11:00:00',
+      amount: 100,
+    };
+    expect(followUps(base, trip)).toEqual([{ kind: 'lodging' }, { kind: 'expense' }]);
+    expect(followUps({ ...base, type: 'flight' }, trip).map((f) => f.kind)).toEqual(['flight', 'expense']);
+    expect(
+      followUps({ ...base, type: 'flight', starts_at: '2027-01-01T09:00:00', amount: null }, trip),
+    ).toEqual([]);
+    expect(followUps({ ...base, type: 'restaurant', amount: 0 }, trip)).toEqual([]);
+  });
+  it('builds check-in/out and flight schedule items with the document times', () => {
+    const places = followUpPlaces(
+      'lodging',
+      { title: 'Hotel 숙박', starts_at: '2026-11-20T15:00:00', ends_at: '2026-11-23T11:00:00' },
+      trip,
+      'Hotel Sakura',
+    );
+    expect(places).toEqual([
+      {
+        name: 'Hotel Sakura 체크인',
+        category: 'lodging',
+        day_index: 0,
+        start_time: '15:00',
+        end_time: '15:30',
+      },
+      {
+        name: 'Hotel Sakura 체크아웃',
+        category: 'lodging',
+        day_index: 3,
+        start_time: '11:00',
+        end_time: '11:30',
+      },
+    ]);
+    const flight = followUpPlaces(
+      'flight',
+      { title: '항공권 ICN→NRT', starts_at: '2026-11-20T08:35:00', ends_at: '2026-11-20T10:55:00' },
+      trip,
+    );
+    expect(flight).toEqual([
+      { name: '항공권 ICN→NRT', category: 'transport', day_index: 0, start_time: '08:35', end_time: '10:55' },
+    ]);
+    expect(
+      followUpPlaces('flight', { title: 'x', starts_at: '2030-01-01T09:00:00', ends_at: null }, trip),
+    ).toEqual([]);
+  });
+});

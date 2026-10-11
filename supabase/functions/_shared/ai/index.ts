@@ -10,6 +10,8 @@ export interface RunAiOptions<T> {
   fallback: boolean;
   req: AiRequest;
   schema: ZodType<T>;
+  /** Pause before retrying a transient failure (429/5xx). Injected so tests do not wait. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface AiResult<T> {
@@ -25,6 +27,7 @@ const other = (p: Provider): Provider => (p === 'gemini' ? 'openrouter' : 'gemin
  * the other provider. AI output is never trusted: only schema-valid data leaves this function.
  */
 export async function runAi<T>(opts: RunAiOptions<T>): Promise<AiResult<T>> {
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const order = ([opts.provider, ...(opts.fallback ? [other(opts.provider)] : [])] as Provider[]).filter(
     (p) => opts.clients[p],
   );
@@ -54,6 +57,8 @@ export async function runAi<T>(opts: RunAiOptions<T>): Promise<AiResult<T>> {
         const status = (e as { status?: number }).status;
         // 4xx other than 429 will not improve by retrying the same provider
         if (typeof status === 'number' && status >= 400 && status < 500 && status !== 429) break;
+        // overload / rate limit: give the provider a moment before the second attempt
+        if (attempt === 0 && (status === undefined || status === 429 || status >= 500)) await sleep(800);
       }
     }
   }

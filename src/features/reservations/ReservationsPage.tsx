@@ -7,19 +7,25 @@ import { Sheet } from '@/components/Sheet';
 import { btn, inputCls } from '@/components/styles';
 import { ErrorState, Field, Skeleton } from '@/components/ui-kit';
 import { useFiles } from '@/features/files/api';
-import { usePlaces } from '@/features/plan/api';
 import type { TripContext } from '@/features/trips/TripLayout';
 import { copyText } from '@/lib/device';
 import { normalizeUrl } from '@/lib/files';
 import { formatMoney, CURRENCIES } from '@/lib/money';
 import {
+  followUpPlaces,
+  followUps,
   formatRangeWhen,
   fromInputValue,
+  fromParse,
   RESERVATION_TYPES,
   toExpensePrefill,
   toInputValue,
+  type ParsedReservation,
   type ReservationType,
 } from '@/lib/reservations';
+import { useAddPlace, usePlaces } from '@/features/plan/api';
+import { AssistPanel } from './AssistPanel';
+import { tripDays } from '@/lib/trip';
 import { useDeleteReservation, useReservations, useSaveReservation, type Reservation } from './api';
 
 export function ReservationsPage() {
@@ -30,7 +36,14 @@ export function ReservationsPage() {
   const places = usePlaces(trip.id);
   const save = useSaveReservation(trip.id);
   const del = useDeleteReservation(trip.id);
-  const [form, setForm] = useState<{ edit?: Reservation } | null>(null);
+  const [form, setForm] = useState<{ edit?: Reservation; prefill?: ReturnType<typeof fromParse> } | null>(
+    null,
+  );
+  const [method, setMethod] = useState<'manual' | 'paste' | 'capture'>('manual');
+  const [after, setAfter] = useState<Reservation | null>(null);
+  const [parsedNote, setParsedNote] = useState('');
+  const addPlace = useAddPlace(trip.id);
+  const dayCount = tripDays(trip.start_date, trip.end_date);
 
   const copyNo = async (no: string) => {
     if (await copyText(no)) toast.success(copy.reservations.copied);
@@ -143,7 +156,11 @@ export function ReservationsPage() {
       <button
         type="button"
         className={`${btn.primary} fixed bottom-20 right-4 z-10 shadow-card lg:bottom-6`}
-        onClick={() => setForm({})}
+        onClick={() => {
+          setMethod('manual');
+          setParsedNote('');
+          setForm({});
+        }}
       >
         <Plus className="size-5" aria-hidden />
         {copy.reservations.add}
@@ -155,15 +172,100 @@ export function ReservationsPage() {
         title={form?.edit ? copy.reservations.edit : copy.reservations.add}
       >
         {form && (
-          <ReservationForm
-            key={form.edit?.id ?? 'new'}
-            initial={form.edit}
-            places={(places.data ?? []).map((p) => ({ id: p.id, name: p.name }))}
-            onSubmit={(row) => {
-              save.mutate({ ...row, trip_id: trip.id });
-              setForm(null);
-            }}
-          />
+          <div className="grid gap-3">
+            {!form.edit && (
+              <AssistPanel
+                tripId={trip.id}
+                method={method}
+                onMethod={setMethod}
+                onParsed={(parsed: ParsedReservation) => {
+                  const v = fromParse(parsed);
+                  setParsedNote(
+                    v.confidence < 0.5 ? copy.reservations.lowConfidence : copy.reservations.filled,
+                  );
+                  setForm({ prefill: v });
+                  setMethod('manual'); // show the pre-filled form to confirm
+                }}
+              />
+            )}
+            {parsedNote && method === 'manual' && !form.edit && (
+              <p role="status" className="text-sm font-semibold text-muted">
+                {parsedNote}
+              </p>
+            )}
+            {(form.edit || method === 'manual') && (
+              <ReservationForm
+                key={form.edit?.id ?? (form.prefill ? 'prefilled' : 'new')}
+                initial={form.edit}
+                prefill={form.prefill}
+                places={(places.data ?? []).map((p) => ({ id: p.id, name: p.name }))}
+                onSubmit={(row) => {
+                  save.mutate({ ...row, trip_id: trip.id });
+                  setForm(null);
+                  if (!form.edit) {
+                    const saved = { ...row, trip_id: trip.id } as unknown as Reservation;
+                    if (followUps(row, { start: trip.start_date, dayCount }).length > 0) setAfter(saved);
+                  }
+                }}
+              />
+            )}
+          </div>
+        )}
+      </Sheet>
+
+      <Sheet open={!!after} onClose={() => setAfter(null)} title={copy.reservations.followTitle}>
+        {after && (
+          <div className="grid gap-2">
+            <p className="text-sm text-muted">{copy.reservations.followHint}</p>
+            {followUps(after, { start: trip.start_date, dayCount }).map((f) => (
+              <button
+                key={f.kind}
+                type="button"
+                className={btn.ghost}
+                onClick={() => {
+                  if (f.kind === 'expense') {
+                    navigate(`/t/${trip.id}/expenses`, {
+                      state: {
+                        prefill: toExpensePrefill({
+                          ...after,
+                          amount: after.amount === null ? null : Number(after.amount),
+                        }),
+                      },
+                    });
+                    return;
+                  }
+                  const rows = followUpPlaces(
+                    f.kind,
+                    after,
+                    { start: trip.start_date, dayCount },
+                    after.note?.split(' · ')[0] ?? null,
+                  );
+                  let pos = (places.data ?? []).reduce((m, x) => Math.max(m, x.position), 0);
+                  for (const r of rows) {
+                    pos += 1000;
+                    addPlace.mutate({
+                      id: crypto.randomUUID(),
+                      trip_id: trip.id,
+                      name: r.name,
+                      category: r.category,
+                      day_index: r.day_index,
+                      start_time: r.start_time,
+                      end_time: r.end_time,
+                      position: pos,
+                      source: 'manual',
+                    });
+                  }
+                  toast.success(copy.reservations.followAdded);
+                  setAfter(null);
+                }}
+              >
+                {copy.reservations.follow[f.kind]}
+              </button>
+            ))}
+            <button type="button" className={btn.ghost} onClick={() => setAfter(null)}>
+              {copy.members.close}
+            </button>
+          </div>
         )}
       </Sheet>
     </div>
@@ -172,10 +274,12 @@ export function ReservationsPage() {
 
 function ReservationForm({
   initial,
+  prefill,
   places,
   onSubmit,
 }: {
   initial?: Reservation;
+  prefill?: ReturnType<typeof fromParse>;
   places: { id: string; name: string }[];
   onSubmit: (row: {
     id: string;
@@ -192,18 +296,20 @@ function ReservationForm({
   }) => void;
 }) {
   const [id] = useState(() => initial?.id ?? crypto.randomUUID());
-  const [type, setType] = useState<string>(initial?.type ?? 'other');
-  const [title, setTitle] = useState(initial?.title ?? '');
-  const [starts, setStarts] = useState(toInputValue(initial?.starts_at ?? null));
-  const [ends, setEnds] = useState(toInputValue(initial?.ends_at ?? null));
-  const [no, setNo] = useState(initial?.confirmation_no ?? '');
+  const [type, setType] = useState<string>(initial?.type ?? prefill?.type ?? 'other');
+  const [title, setTitle] = useState(initial?.title ?? prefill?.title ?? '');
+  const [starts, setStarts] = useState(toInputValue(initial?.starts_at ?? null) || prefill?.starts || '');
+  const [ends, setEnds] = useState(toInputValue(initial?.ends_at ?? null) || prefill?.ends || '');
+  const [no, setNo] = useState(initial?.confirmation_no ?? prefill?.no ?? '');
   const [placeId, setPlaceId] = useState(initial?.place_id ?? '');
   const [url, setUrl] = useState(initial?.url ?? '');
   const [amount, setAmount] = useState(
-    initial?.amount !== null && initial?.amount !== undefined ? String(initial.amount) : '',
+    initial?.amount !== null && initial?.amount !== undefined
+      ? String(initial.amount)
+      : (prefill?.amount ?? ''),
   );
-  const [currency, setCurrency] = useState(initial?.currency ?? 'KRW');
-  const [note, setNote] = useState(initial?.note ?? '');
+  const [currency, setCurrency] = useState(initial?.currency ?? prefill?.currency ?? 'KRW');
+  const [note, setNote] = useState(initial?.note ?? prefill?.note ?? '');
 
   const normalized = url.trim() ? normalizeUrl(url) : null;
   const urlBad = url.trim() !== '' && normalized === null;

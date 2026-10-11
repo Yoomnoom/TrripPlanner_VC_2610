@@ -123,7 +123,7 @@ describe('runAi', () => {
     },
   });
   const models = { gemini: 'g', openrouter: 'o' };
-  const base = { models, req, schema, fallback: true } as const;
+  const base = { models, req, schema, fallback: true, sleep: async () => {} } as const;
 
   it('uses the chosen provider', async () => {
     const r = await runAi({ ...base, provider: 'openrouter', clients: { gemini: boom(), openrouter: ok } });

@@ -31,6 +31,20 @@ export function createFakeClient(): AiClient {
           confidence: 0.9,
         });
       }
+      if ((req.jsonSchema as { required?: string[] }).required?.includes('confirmationNo')) {
+        return JSON.stringify({
+          type: 'lodging',
+          title: '테스트 호텔 숙박',
+          startsAt: '2026-10-09T15:00',
+          endsAt: '2026-10-12T11:00',
+          confirmationNo: 'TEST1234',
+          locationName: '테스트 호텔',
+          amount: 120000,
+          currency: 'KRW',
+          note: null,
+          confidence: 0.9,
+        });
+      }
       const ctx = req.user.match(/^CONTEXT: (.*)$/m);
       const context = ctx
         ? (JSON.parse(ctx[1]) as { trip?: { dayCount?: number; destinations?: { city?: string | null }[] } })

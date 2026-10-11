@@ -75,6 +75,42 @@ export const PLAN_JSON_SCHEMA = {
   },
 };
 
+/** ai-indoor-swap (SPEC C-5). */
+export const INDOOR_SYSTEM = `다음 장소를 대체할 수 있는 같은 지역의 **실내** 장소 3곳을 제안한다. 같은 시간대에 방문 가능하고 이동이 짧은 곳을 우선한다. 비 오는 날 방문하기 좋은 이유를 reason에 한 줄로 쓴다.
+실제로 존재하는 유명하고 검증 가능한 장소만 쓰고, searchQuery는 "정확한 상호명 + 도시/동네" 형태로 쓴다. 항상 한국어로 답하고 JSON 스키마만 출력한다.`;
+
+export const buildIndoorUser = (p: {
+  name: string;
+  category: string;
+  address: string | null;
+  startTime: string | null;
+}) => `대체할 장소: ${JSON.stringify(p)}`;
+
+/** JSON Schema twin of IndoorAlternatives. */
+export const INDOOR_JSON_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['alternatives'],
+  properties: {
+    alternatives: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 3,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['name', 'category', 'searchQuery', 'reason'],
+        properties: {
+          name: { type: 'string' },
+          category: { type: 'string', enum: [...PLACE_CATEGORIES] },
+          searchQuery: { type: 'string' },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
 /** Tiny schema for the connection test. */
 export const PING_JSON_SCHEMA = {
   type: 'object',

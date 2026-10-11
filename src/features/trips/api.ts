@@ -74,7 +74,10 @@ export function useMembers(tripId: string) {
 }
 
 export type TripCounts = {
+  /** All places (scheduled + ideas). */
   places: number;
+  scheduled: number;
+  ideas: number;
   reservations: number;
   files: number;
   expenses: number;
@@ -95,6 +98,7 @@ export function useTripCounts(tripId: string) {
         head('trip_files'),
         head('expenses'),
         head('checklist_items'),
+        head('places').not('day_index', 'is', null),
         client
           .from('checklist_items')
           .select('id', { count: 'exact', head: true })
@@ -103,8 +107,19 @@ export function useTripCounts(tripId: string) {
       ]);
       const failed = results.find((r) => r.error);
       if (failed?.error) throw failed.error;
-      const [places, reservations, files, expenses, total, done] = results.map((r) => r.count ?? 0);
-      return { places, reservations, files, expenses, checklistTotal: total, checklistDone: done };
+      const [places, reservations, files, expenses, total, scheduled, done] = results.map(
+        (r) => r.count ?? 0,
+      );
+      return {
+        places,
+        scheduled,
+        ideas: places - scheduled,
+        reservations,
+        files,
+        expenses,
+        checklistTotal: total,
+        checklistDone: done,
+      };
     },
   });
 }

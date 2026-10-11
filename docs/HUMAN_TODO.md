@@ -28,3 +28,8 @@
 - 비용 보호: `supabase/functions/.env`에 `DAILY_LIMIT_AI=30` 추가(무인 모드에서는 이 파일 수정 금지라 직접 못 넣음, 기본값 60).
 - Google 서버 키가 없어서 AI가 만든 장소는 "위치 미확인"(좌표 없음)으로 저장됨 → M4 항목의 `GOOGLE_SERVER_KEY` 입력 후 새로 생성하면 좌표가 채워지는지 확인.
 - 실패 시 증상: 채팅에서 `AI 응답을 받지 못했어요` = 두 제공자 모두 실패(함수 로그: `supabase functions serve` 출력의 `ai-plan AI_FAILED`).
+
+### [M10] 탐색 검색·실내 대안 눈 확인 (UNVERIFIED)
+- 필요 단계: M10 (약 10분, Google 키 후)
+- 방법: 탐색에서 장소명 입력 → 지금은 `직접 입력` 후보 1개만 보임. Google 키(M4 항목) 입력 후 `getPlacesProvider()`에 Google 구현을 연결하면 실제 후보가 나옴(코드는 PlacesProvider 인터페이스 뒤에 준비, 구현체 추가 필요 — BACKLOG). 일정 화면에서 Day 헤더 `실내로` 스위치 → 야외 장소의 `실내 대안` 칩 → 교체.
+- 실패 시 증상: 실내 대안 시트에 `AI 응답을 받지 못했어요` = AI 키/한도 문제, 후보에 `위치 미확인` = GOOGLE_SERVER_KEY 없음.

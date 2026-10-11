@@ -32,6 +32,7 @@ import { copy } from '@/copy';
 import { scheduleToCsv } from '@/lib/calendar';
 import { downloadCsv } from '@/lib/csv';
 import { googleEnabled } from '@/lib/env';
+import { isOutdoor, swapPatch } from '@/lib/indoor';
 import { Skeleton, ErrorState } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
 import { dayFirstStart, groupByDay, hm, insertAt, legLabel, nextMode, nextSlot, reflowDay } from '@/lib/plan';
@@ -49,6 +50,7 @@ import {
   type Place,
 } from './api';
 import { AddPlaceSheet, type AddTarget } from './AddPlaceSheet';
+import { IndoorSheet } from './IndoorSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
 const MapView = lazy(() => import('./MapView'));
@@ -75,6 +77,8 @@ export function PlanPage() {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [addTarget, setAddTarget] = useState<AddTarget>(null);
   const [selected, setSelected] = useState<Place | null>(null);
+  const [indoorDays, setIndoorDays] = useState<Set<number>>(new Set());
+  const [indoorFor, setIndoorFor] = useState<Place | null>(null);
   const today = todayYmd();
 
   const sensors = useSensors(
@@ -338,6 +342,23 @@ export function PlanPage() {
                         )}
                         <span className="text-sm text-muted">{copy.plan.placeCount(list.length)}</span>
                       </button>
+                      <label className="flex min-h-11 cursor-pointer items-center gap-1.5 text-xs font-semibold text-muted">
+                        <input
+                          type="checkbox"
+                          role="switch"
+                          className="size-5 accent-[var(--color-primary)]"
+                          checked={indoorDays.has(i)}
+                          onChange={() =>
+                            setIndoorDays((cur) => {
+                              const n = new Set(cur);
+                              if (n.has(i)) n.delete(i);
+                              else n.add(i);
+                              return n;
+                            })
+                          }
+                        />
+                        {copy.plan.indoorToggle}
+                      </label>
                       <button
                         type="button"
                         className={btn.ghost}
@@ -354,7 +375,11 @@ export function PlanPage() {
                   {list.map((p, idx) => (
                     <li key={p.id} className="grid gap-2">
                       {idx > 0 && <LegChip prev={list[idx - 1]} cur={p} onClick={() => cycleMode(p)} />}
-                      <PlaceCard place={p} onMenu={() => setSelected(p)} />
+                      <PlaceCard
+                        place={p}
+                        onMenu={() => setSelected(p)}
+                        onIndoor={indoorDays.has(i) && isOutdoor(p) ? () => setIndoorFor(p) : undefined}
+                      />
                     </li>
                   ))}
                 </Section>
@@ -407,6 +432,20 @@ export function PlanPage() {
           setAddTarget(null);
         }}
       />
+      <IndoorSheet
+        tripId={trip.id}
+        place={indoorFor}
+        onClose={() => setIndoorFor(null)}
+        onReplace={(place, alt) => {
+          const day = grouped.days[place.day_index ?? -1] ?? [];
+          const next = day[day.findIndex((x) => x.id === place.id) + 1];
+          // The cached leg is keyed by place id, so both this place and the next one must recompute.
+          update.mutate([
+            { id: place.id, patch: { ...swapPatch(alt), ...invalidLeg } },
+            ...(next ? [{ id: next.id, patch: invalidLeg }] : []),
+          ]);
+        }}
+      />
       <PlaceSheet
         place={selected}
         days={grouped.days}
@@ -449,7 +488,7 @@ function Section({
   );
 }
 
-function PlaceCard({ place, onMenu }: { place: Place; onMenu: () => void }) {
+function PlaceCard({ place, onMenu, onIndoor }: { place: Place; onMenu: () => void; onIndoor?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: place.id,
   });
@@ -487,6 +526,15 @@ function PlaceCard({ place, onMenu }: { place: Place; onMenu: () => void }) {
           )}
         </p>
       </div>
+      {onIndoor && (
+        <button
+          type="button"
+          onClick={onIndoor}
+          className="min-h-11 shrink-0 rounded-full bg-primary-soft px-3 text-xs font-bold text-primary"
+        >
+          {copy.plan.indoorChip}
+        </button>
+      )}
       <button
         type="button"
         aria-label={copy.plan.menu}

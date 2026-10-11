@@ -40,3 +40,5 @@
 2026-10-12 · M9 · Gemini 기본 모델은 ListModels로 가장 새 gemini-X-flash를 자동 선택(DEFAULT_GEMINI_MODEL이 우선) · 모델명 하드코딩 금지(규칙 7), 실제로 gemini-2.5-flash가 404였음
 2026-10-12 · M9 · AI_FAKE=1이면 결정적 가짜 제공자로 키 없이 채팅→제안→적용 흐름 검증 · 무인 모드 요구사항(키 없이도 끝까지 동작)
 2026-10-12 · M9 · DAILY_LIMIT_AI=30은 supabase/functions/.env 수정 금지(deny)로 직접 못 넣음 → HUMAN_TODO에 안내, 테스트 호출은 최소로
+2026-10-12 · M10 · 실내 대안 칩은 is_indoor=false 또는 미지정+야외 성격 카테고리(관광/액티비티)에만 표시 · SPEC의 "is_indoor=false(또는 야외 카테고리)"를 null 처리까지 구체화
+2026-10-12 · M10 · 장소 교체 시 다음 장소의 이동 캐시도 함께 무효화 · 캐시가 장소 id 기준이라 좌표가 바뀌어도 신선하다고 오판하기 때문

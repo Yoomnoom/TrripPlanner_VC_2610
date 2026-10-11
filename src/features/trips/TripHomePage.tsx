@@ -51,8 +51,8 @@ export function TripHomePage() {
 
   const c = counts.data;
   const cards = [
-    { to: 'plan', label: copy.tripHome.cards.plan, n: c && `${c.places}${copy.tripHome.unit.places}` },
-    { to: 'explore', label: copy.tripHome.cards.explore, n: undefined },
+    { to: 'plan', label: copy.tripHome.cards.plan, n: c && `${c.scheduled}${copy.tripHome.unit.places}` },
+    { to: 'explore', label: copy.tripHome.cards.explore, n: c && `${c.ideas}${copy.tripHome.unit.places}` },
     {
       to: 'reservations',
       label: copy.tripHome.cards.reservations,

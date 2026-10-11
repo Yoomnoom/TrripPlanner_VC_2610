@@ -10,6 +10,16 @@ export function createFakeClient(): AiClient {
       if (req.jsonSchema && (req.jsonSchema as { required?: string[] }).required?.includes('ok')) {
         return JSON.stringify({ ok: true });
       }
+      if ((req.jsonSchema as { required?: string[] }).required?.includes('alternatives')) {
+        return JSON.stringify({
+          alternatives: ['국립 박물관', '실내 수족관', '대형 쇼핑몰'].map((name) => ({
+            name,
+            category: 'sightseeing',
+            searchQuery: `${name} 도쿄`,
+            reason: '비를 피해 편하게 둘러볼 수 있어요',
+          })),
+        });
+      }
       const ctx = req.user.match(/^CONTEXT: (.*)$/m);
       const context = ctx
         ? (JSON.parse(ctx[1]) as { trip?: { dayCount?: number; destinations?: { city?: string | null }[] } })

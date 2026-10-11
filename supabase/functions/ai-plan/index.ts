@@ -1,5 +1,4 @@
 import { aiEnv } from '../_shared/ai/env.ts';
-import { fakeCoords } from '../_shared/ai/fake.ts';
 import { runAi } from '../_shared/ai/index.ts';
 import { AiError, type Provider } from '../_shared/ai/types.ts';
 import { adminClient, bumpUsage, limitFromEnv, requireUser, userClient } from '../_shared/auth.ts';
@@ -13,19 +12,11 @@ import {
   wantsWeather,
   type Plan,
 } from '../_shared/itinerary.ts';
-import {
-  buildTextSearchBody,
-  mapLimit,
-  parseTextSearch,
-  PLACES_FIELD_MASK,
-  PLACES_TEXT_URL,
-  type ResolvedPlace,
-} from '../_shared/places.ts';
+import { mapLimit } from '../_shared/places.ts';
+import { makeResolver } from '../_shared/resolve.ts';
 import { buildPlanUser, PLAN_JSON_SCHEMA, PLAN_SYSTEM } from '../_shared/prompts.ts';
 import { buildFxUrl, parseFxResponse } from '../_shared/fx.ts';
 import { buildForecastUrl, parseForecast } from '../_shared/weather.ts';
-
-const DEFAULT_CENTER = { lat: 35.6812, lng: 139.7671 }; // only used by the fake resolver when a trip has no coordinates
 
 async function getJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
@@ -116,29 +107,8 @@ Deno.serve(async (req) => {
     const plan = fixItinerary(result.data as Plan, dayCount);
 
     // Resolve each item to a real place (server key). Failures leave the item name-only (resolved:false).
-    const serverKey = Deno.env.get('GOOGLE_SERVER_KEY');
     const center = d0?.lat != null && d0?.lng != null ? { lat: d0.lat, lng: d0.lng } : null;
-    const resolve = async (query: string): Promise<ResolvedPlace | null> => {
-      if (env.keys.fake) {
-        const c = fakeCoords(query, center ?? DEFAULT_CENTER);
-        return { googlePlaceId: `fake:${query}`, address: null, lat: c.lat, lng: c.lng };
-      }
-      if (!serverKey) return null;
-      try {
-        const j = await getJson(PLACES_TEXT_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': serverKey,
-            'X-Goog-FieldMask': PLACES_FIELD_MASK,
-          },
-          body: JSON.stringify(buildTextSearchBody(query, center)),
-        });
-        return parseTextSearch(j);
-      } catch {
-        return null;
-      }
-    };
+    const resolve = makeResolver(center, env.keys.fake);
     const proposal = plan.itinerary
       ? {
           days: await Promise.all(

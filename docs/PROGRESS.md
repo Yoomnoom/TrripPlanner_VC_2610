@@ -10,3 +10,4 @@
 - 2026-10-12 · M7 완료: fx-rate 함수(실호출 확인)+오프라인 마지막 환율, 빠른 입력 파서, 지출 폼(균등/비율/금액 분담, 합계 검증), save_expense RPC로만 저장, 목록(검색·필터·CSV), 요약(보낼/받을/전체, 도넛2·막대·큰 지출·예산, recharts lazy), Realtime. 테스트 97개, API 스크립트로 RPC·fx 검증. 다음: M8.
 - 2026-10-12 · M8 완료: 정산 탭(잔액 막대, 최소 송금 카드, 정산 확인 시트, 정산 완료/취소, Realtime). 부록 C-2 필수 케이스 6개는 tests/settlement.test.ts(8개)로 통과, 전체 97개. 다음: M9.
 - 2026-10-12 · M9 완료: AI 어댑터(Gemini/OpenRouter)+runAi(재시도·자동 전환·zod 검증)+가짜 제공자, ai-status(키 불리언·연결 테스트·모델 자동 탐색), ai-plan(컨텍스트·환율/날씨 보강·Places 해석·chat_messages는 service_role 저장), 채팅 UI(제안 카드·diff·덮어쓰기/추가 적용·AI 설정 시트). 실호출: Gemini 성공(구조화 출력·일정 생성·적용), OpenRouter 402(계정 크레딧)→자동 전환 확인. 테스트 128개. 버그 수정: Realtime UPDATE가 큰 jsonb를 생략해 카드가 사라지던 문제(병합 처리), 일정 탭 3열. 다음: M10.
+- 2026-10-12 · M10 완료: /explore(검색→PlacesProvider, 분류 칩, 상세 시트, Google/네이버/카카오 외부 링크, 아이디어 보관함·일정으로 이동), ai-indoor-swap 함수(실호출 성공, 비멤버 403)와 Day 헤더 실내 토글·교체 시트, 홈 카운트(일정/아이디어 분리). 테스트 133개. 다음: M11.

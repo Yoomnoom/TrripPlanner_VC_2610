@@ -8,7 +8,13 @@ import { getPlacesProvider, type PlaceCandidate } from '@/providers/places';
 import { PLACE_CATEGORIES, LABELS_KO, type PlaceCategory } from '@/types/domain';
 import type { NewPlace, Place } from './api';
 
-export type AddTarget = { dayIndex: number | null; dayPlaces: Place[]; ideas: Place[] } | null;
+export type AddTarget = {
+  dayIndex: number | null;
+  dayPlaces: Place[];
+  ideas: Place[];
+  /** Pre-filled time, e.g. from a calendar selection. */
+  prefill?: { start: string; end: string };
+} | null;
 
 /** Add a place to a day (or the idea inbox when dayIndex is null), or pull one in from the inbox. */
 export function AddPlaceSheet({
@@ -28,7 +34,14 @@ export function AddPlaceSheet({
       onClose={onClose}
       title={target?.dayIndex === null ? copy.plan.addIdeaTitle : copy.plan.addTitle}
     >
-      {target && <AddForm key={`${target.dayIndex}`} target={target} onAdd={onAdd} onPickIdea={onPickIdea} />}
+      {target && (
+        <AddForm
+          key={`${target.dayIndex}:${target.prefill?.start ?? ''}`}
+          target={target}
+          onAdd={onAdd}
+          onPickIdea={onPickIdea}
+        />
+      )}
     </Sheet>
   );
 }
@@ -44,7 +57,7 @@ function AddForm({
 }) {
   const provider = getPlacesProvider();
   const isIdea = target.dayIndex === null;
-  const slot = nextSlot(target.dayPlaces);
+  const slot = target.prefill ?? nextSlot(target.dayPlaces);
 
   const [tab, setTab] = useState<'new' | 'ideas'>('new');
   const [name, setName] = useState('');

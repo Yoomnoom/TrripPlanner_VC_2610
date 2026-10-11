@@ -32,3 +32,4 @@
 2026-10-11 · M4 · routes-leg는 경로가 없으면 서버 추정 대신 {leg:null}을 반환하고 클라이언트 withFallback이 추정 · geo.ts를 Deno 함수와 공유하면 .ts 확장자 import가 tsc와 충돌해서 공식을 한 곳(클라이언트)에만 둠
 2026-10-11 · M4 · 구글 키 감지는 VITE_GOOGLE_MAPS_BROWSER_KEY 유무 하나로 통일(지도·Routes 제공자 전환) · 키가 들어오면 코드 수정 없이 켜짐
 2026-10-11 · M4 · 새 의존성 @vis.gl/react-google-maps(지도, SPEC 4-6 지정), @types/google.maps(dev, 타입)
+2026-10-11 · M5 · FullCalendar 6.1.x로 통일 · react/core 7.x와 timegrid/interaction 6.x를 섞으면 호환되지 않음

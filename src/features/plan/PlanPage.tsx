@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copy } from '@/copy';
+import { scheduleToCsv } from '@/lib/calendar';
+import { downloadCsv } from '@/lib/csv';
 import { googleEnabled } from '@/lib/env';
 import { Skeleton, ErrorState } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
@@ -50,6 +52,7 @@ import { AddPlaceSheet, type AddTarget } from './AddPlaceSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
 const MapView = lazy(() => import('./MapView'));
+const CalendarView = lazy(() => import('./CalendarView'));
 const MODE_ICON = { walk: Footprints, transit: TramFront, drive: Car } as const;
 const IDEAS = 'ideas';
 const dayId = (i: number) => `day:${i}`;
@@ -67,7 +70,8 @@ export function PlanPage() {
   useLegCalculation(trip.id, grouped.days);
 
   const [params, setParams] = useSearchParams();
-  const view = params.get('view') === 'map' ? 'map' : 'list';
+  const v0 = params.get('view');
+  const view = v0 === 'map' || v0 === 'calendar' ? v0 : 'list';
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [addTarget, setAddTarget] = useState<AddTarget>(null);
   const [selected, setSelected] = useState<Place | null>(null);
@@ -228,20 +232,59 @@ export function PlanPage() {
         role="tablist"
         className="mb-3 grid max-w-xs grid-cols-2 gap-1 rounded-full bg-surface p-1 shadow-card"
       >
-        {(['list', 'map'] as const).map((v) => (
+        {(['list', 'calendar', 'map'] as const).map((v) => (
           <button
             key={v}
             type="button"
             role="tab"
             aria-selected={view === v}
-            onClick={() => setParams(v === 'map' ? { view: 'map' } : {}, { replace: true })}
+            onClick={() => setParams(v === 'list' ? {} : { view: v }, { replace: true })}
             className={`min-h-11 rounded-full text-sm font-semibold ${view === v ? 'bg-hero text-white' : 'text-muted'}`}
           >
-            {v === 'list' ? copy.map.viewList : copy.map.viewMap}
+            {v === 'list' ? copy.map.viewList : v === 'calendar' ? copy.map.viewCalendar : copy.map.viewMap}
           </button>
         ))}
       </div>
 
+      {view === 'calendar' && (
+        <>
+          <div className="mb-2 flex justify-end">
+            <button
+              type="button"
+              className={btn.ghost}
+              onClick={() => {
+                if (grouped.days.every((d) => d.length === 0)) return void toast(copy.plan.csvEmpty);
+                downloadCsv(`${trip.title}.csv`, scheduleToCsv(grouped.days));
+              }}
+            >
+              {copy.plan.csv}
+            </button>
+          </div>
+          <Suspense fallback={<Skeleton className="h-80" />}>
+            <CalendarView
+              days={grouped.days}
+              tripStart={trip.start_date}
+              onChange={(id, slot) =>
+                update.mutate([
+                  {
+                    id,
+                    patch: { day_index: slot.day, start_time: slot.start, end_time: slot.end, ...invalidLeg },
+                  },
+                ])
+              }
+              onSelect={(slot) =>
+                setAddTarget({
+                  dayIndex: slot.day,
+                  dayPlaces: grouped.days[slot.day] ?? [],
+                  ideas: grouped.ideas,
+                  prefill: { start: slot.start, end: slot.end },
+                })
+              }
+              onOpen={(id) => setSelected(places.data?.find((p) => p.id === id) ?? null)}
+            />
+          </Suspense>
+        </>
+      )}
       {view === 'map' && googleEnabled && (
         <Suspense fallback={<Skeleton className="h-80" />}>
           <MapView days={grouped.days} />
@@ -254,7 +297,7 @@ export function PlanPage() {
         </div>
       )}
 
-      {(view === 'list' || !googleEnabled) && (
+      {(view === 'list' || (view === 'map' && !googleEnabled)) && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <div className="grid gap-4">
             {grouped.days.map((list, i) => {

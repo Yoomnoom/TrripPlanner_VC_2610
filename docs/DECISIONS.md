@@ -23,3 +23,4 @@
 2026-10-11 · M0 · TypeScript 5.9, ESLint 9 고정 · typescript-eslint가 TS 7 / ESLint 10을 아직 지원하지 않음
 2026-10-11 · M0 · pnpm·Supabase CLI는 전역 설치 없이 `npx pnpm@11.16.0` / `npx supabase`로 실행 · 사용자 PC 환경을 바꾸지 않기 위해
 2026-10-11 · M0 · shadcn/ui는 components.json만 설정하고 컴포넌트는 필요한 단계에서 추가 · 미사용 코드 방지
+2026-10-11 · M1 · 로컬 DB는 Postgres 17(config.toml major_version=17) · 마이그레이션 0001~0003과 rls_smoke.sql을 17.11에서 실행해 README 기대 결과와 일치 확인(원래 검증은 16)

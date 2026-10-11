@@ -8,6 +8,10 @@ export const copy = {
     close: '닫기',
     comingSoon: '곧 만들어질 화면이에요',
   },
+  session: {
+    envMissing: '.env.local에 Supabase 주소와 키를 먼저 넣어 주세요',
+    failed: '접속하지 못했어요. 잠시 후 다시 시도해 주세요',
+  },
   routes: {
     home: '내 여행',
     newTrip: '새 여행',

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Plus, Plane, Settings, Globe2 } from 'lucide-react';
+import { Plus, Plane, Settings, Globe2, Heart } from 'lucide-react';
 import { copy } from '@/copy';
 import { ErrorState, Skeleton } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
@@ -21,6 +21,13 @@ export function HomePage() {
             className="grid size-11 place-items-center rounded-full hover:bg-surface"
           >
             <Globe2 className="size-5" aria-hidden />
+          </Link>
+          <Link
+            to="/saved"
+            aria-label={copy.saved.title}
+            className="grid size-11 place-items-center rounded-full hover:bg-surface"
+          >
+            <Heart className="size-5" aria-hidden />
           </Link>
           <Link
             to="/settings"

@@ -290,3 +290,20 @@ export function useRemoveMember(tripId: string) {
     },
   });
 }
+
+/** Destinations of a trip (country + city), first one first. */
+export function useTripDestinations(tripId: string) {
+  return useQuery({
+    queryKey: ['destinations', tripId],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await db()
+        .from('trip_destinations')
+        .select('country_code, city, lat, lng')
+        .eq('trip_id', tripId)
+        .order('position');
+      if (error) throw error;
+      return data;
+    },
+  });
+}

@@ -16,12 +16,36 @@ export const PLAN_SYSTEM = `너는 개인 여행 플래너의 일정 설계 도�
 - 이미 있는 일정(CONTEXT.currentItinerary)을 수정하라는 요청이면 수정이 반영된 "전체 일정"을 반환한다.
 - 날씨·환율 정보는 CONTEXT에 주어진 값만 사용한다. 없으면 모른다고 말하고 추측하지 않는다.
 - 비자·입국 규정은 변할 수 있으니 일반 안내 후 "공식 사이트에서 확인하세요"를 덧붙인다.
-- reply는 3문장 이내로, 일정을 만들었다면 일차별 한 줄 요약을 포함한다.`;
+- reply는 3문장 이내로, 일정을 만들었다면 일차별 한 줄 요약을 포함한다.
+- CONTEXT.planningPrefs를 반영한다. pace가 relaxed면 하루 3곳 이내, busy면 6곳 이상.
+- CONTEXT.mustInclude(아이디어 보관함·사용자 지정 장소)는 반드시 일정에 포함하고, 불가하면 reply에 이유를 쓴다.
+- avoid 항목에 해당하는 장소는 넣지 않는다.
+- 대화 중 선호가 바뀌면(예: "더 느긋하게") prefsPatch에 바뀐 항목만 채우고 나머지는 null, 바뀐 게 없으면 prefsPatch는 null이다.`;
 
 export const buildPlanUser = (context: unknown, message: string) =>
   `CONTEXT: ${JSON.stringify(context)}\n\n요청: ${message}`;
 
 const nullable = (type: string, extra: Record<string, unknown> = {}) => ({ type: [type, 'null'], ...extra });
+const PREFS_SCHEMA = {
+  anyOf: [
+    { type: 'null' },
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['companions', 'pace', 'themes', 'transport', 'avoid', 'mustInclude'],
+      properties: {
+        companions: nullable('string', {
+          enum: ['solo', 'couple', 'friends', 'family', 'kids', 'parents', null],
+        }),
+        pace: nullable('string', { enum: ['relaxed', 'normal', 'busy', null] }),
+        themes: nullable('array', { items: { type: 'string' } }),
+        transport: nullable('string', { enum: ['public', 'car', null] }),
+        avoid: nullable('array', { items: { type: 'string' } }),
+        mustInclude: nullable('array', { items: { type: 'string' } }),
+      },
+    },
+  ],
+};
 const HHMM = { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$' };
 
 const itemSchema = {
@@ -43,9 +67,10 @@ const itemSchema = {
 export const PLAN_JSON_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['reply', 'intent', 'itinerary'],
+  required: ['reply', 'intent', 'itinerary', 'prefsPatch'],
   properties: {
     reply: { type: 'string' },
+    prefsPatch: PREFS_SCHEMA,
     intent: { type: 'string', enum: ['chat', 'itinerary'] },
     itinerary: {
       anyOf: [

@@ -87,6 +87,8 @@ export interface ContextInput {
   }[];
   fx?: { currency: string; rate: number; date: string | null } | null;
   weather?: unknown;
+  prefs?: unknown;
+  mustInclude?: string[];
 }
 
 /** Compact CONTEXT for the prompt: titles/times only, never ids or personal data. */
@@ -112,6 +114,8 @@ export function buildContext(i: ContextInput) {
       })),
     ...(i.fx ? { fx: i.fx } : {}),
     ...(i.weather ? { weather: i.weather } : {}),
+    ...(i.prefs ? { planningPrefs: i.prefs } : {}),
+    ...(i.mustInclude?.length ? { mustInclude: i.mustInclude } : {}),
   };
 }
 

@@ -43,6 +43,7 @@ export function createFakeClient(): AiClient {
           reply: '테스트용 가짜 AI예요. 일정을 만들어 달라고 해 보세요.',
           intent: 'chat',
           itinerary: null,
+          prefsPatch: /느긋/.test(req.user) ? { pace: 'relaxed' } : null,
         });
       }
       const item = (name: string, category: string, s: string, e: string) => ({
@@ -57,6 +58,7 @@ export function createFakeClient(): AiClient {
       return JSON.stringify({
         reply: `${days}일 일정을 만들었어요. (테스트용 가짜 AI)`,
         intent: 'itinerary',
+        prefsPatch: /느긋/.test(req.user) ? { pace: 'relaxed' } : null,
         itinerary: {
           days: Array.from({ length: days }, (_, i) => ({
             dayIndex: i,

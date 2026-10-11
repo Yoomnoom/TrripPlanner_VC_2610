@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { ExternalLink, MoreVertical, Plus } from 'lucide-react';
+import { ExternalLink, Heart, MoreVertical, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { copy } from '@/copy';
 import { Sheet } from '@/components/Sheet';
@@ -17,7 +17,10 @@ import {
 } from '@/features/plan/api';
 import { PlaceSheet, type PlaceAction } from '@/features/plan/PlaceSheet';
 import type { TripContext } from '@/features/trips/TripLayout';
+import { useSavedPlaces, useSavePlace, useUnsavePlace, type SavedPlace } from '@/features/saved/api';
+import { useTripDestinations } from '@/features/trips/api';
 import { externalLinks } from '@/lib/external';
+import { notInIdeas, savedKey } from '@/lib/saved';
 import { groupByDay, nextSlot } from '@/lib/plan';
 import { dayYmd, formatMdWeekday, tripDays } from '@/lib/trip';
 import { getPlacesProvider, type PlaceCandidate } from '@/providers/places';
@@ -32,6 +35,13 @@ export function ExplorePage() {
   const update = useUpdatePlaces(trip.id);
   const del = useDeletePlace(trip.id);
   const provider = getPlacesProvider();
+  const savedList = useSavedPlaces();
+  const savePlace = useSavePlace();
+  const unsave = useUnsavePlace();
+  const dest = useTripDestinations(trip.id).data?.[0];
+  const [importOpen, setImportOpen] = useState(false);
+  const [importPick, setImportPick] = useState<Set<string>>(new Set());
+  const savedBy = new Map((savedList.data ?? []).map((s) => [s.google_place_id, s]));
 
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<PlaceCategory | 'all'>('all');
@@ -146,7 +156,15 @@ export function ExplorePage() {
         <h2 className="flex items-center gap-2 font-bold">
           {copy.plan.ideas}{' '}
           <span className="text-sm font-normal text-muted">{copy.plan.placeCount(ideas.length)}</span>
+          <button
+            type="button"
+            className="ml-auto min-h-11 text-sm font-semibold text-primary"
+            onClick={() => setImportOpen(true)}
+          >
+            {copy.saved.import}
+          </button>
         </h2>
+        <p className="text-xs text-muted">{copy.saved.difference}</p>
         {places.isPending && <Skeleton className="mt-2 h-24" />}
         {places.isError && (
           <ErrorState
@@ -179,6 +197,32 @@ export function ExplorePage() {
               >
                 <ExternalLink className="size-4" aria-hidden />
               </a>
+              <button
+                type="button"
+                aria-label={`${p.name} ${savedBy.has(savedKey(p)) ? copy.saved.remove : copy.saved.save}`}
+                aria-pressed={savedBy.has(savedKey(p))}
+                className="grid size-11 shrink-0 place-items-center rounded-full hover:bg-bg"
+                onClick={() => {
+                  const hit = savedBy.get(savedKey(p));
+                  if (hit) unsave.mutate(hit.id);
+                  else
+                    savePlace.mutate({
+                      google_place_id: p.google_place_id,
+                      name: p.name,
+                      address: p.address,
+                      lat: p.lat,
+                      lng: p.lng,
+                      category: p.category,
+                      country_code: dest?.country_code ?? null,
+                      city: dest?.city ?? null,
+                    });
+                }}
+              >
+                <Heart
+                  className={`size-4 ${savedBy.has(savedKey(p)) ? 'fill-danger text-danger' : 'text-muted'}`}
+                  aria-hidden
+                />
+              </button>
               <button
                 type="button"
                 aria-label={copy.plan.menu}
@@ -221,6 +265,48 @@ export function ExplorePage() {
               toast.success(day === null ? copy.explore.addedIdea : copy.explore.movedToDay(day + 1));
               setDetail(null);
               setQ('');
+            }}
+          />
+        )}
+      </Sheet>
+
+      <Sheet open={importOpen} onClose={() => setImportOpen(false)} title={copy.saved.import}>
+        {importOpen && (
+          <ImportList
+            options={notInIdeas(
+              savedList.data ?? [],
+              grouped.ideas.map((p) => p.name),
+            )}
+            picked={importPick}
+            onToggle={(id) =>
+              setImportPick((cur) => {
+                const n = new Set(cur);
+                if (n.has(id)) n.delete(id);
+                else n.add(id);
+                return n;
+              })
+            }
+            onImport={(chosen) => {
+              let pos = grouped.ideas.reduce((m, p) => Math.max(m, p.position), 0);
+              for (const s of chosen) {
+                pos += 1000;
+                add.mutate({
+                  id: crypto.randomUUID(),
+                  trip_id: trip.id,
+                  name: s.name,
+                  category: s.category,
+                  address: s.address,
+                  lat: s.lat,
+                  lng: s.lng,
+                  google_place_id: s.google_place_id.startsWith('manual:') ? null : s.google_place_id,
+                  day_index: null,
+                  position: pos,
+                  source: 'explore',
+                });
+              }
+              toast.success(copy.saved.imported(chosen.length));
+              setImportPick(new Set());
+              setImportOpen(false);
             }}
           />
         )}
@@ -296,6 +382,48 @@ function Detail({
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ImportList({
+  options,
+  picked,
+  onToggle,
+  onImport,
+}: {
+  options: SavedPlace[];
+  picked: Set<string>;
+  onToggle: (id: string) => void;
+  onImport: (chosen: SavedPlace[]) => void;
+}) {
+  if (options.length === 0)
+    return <p className="py-4 text-center text-sm text-muted">{copy.saved.nothingToImport}</p>;
+  return (
+    <div className="grid gap-2">
+      <ul className="grid gap-1">
+        {options.map((s) => (
+          <li key={s.id}>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                className="size-5 accent-[var(--color-primary)]"
+                checked={picked.has(s.id)}
+                onChange={() => onToggle(s.id)}
+              />
+              <span className="min-w-0 truncate">{s.name}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        className={btn.primary}
+        disabled={picked.size === 0}
+        onClick={() => onImport(options.filter((o) => picked.has(o.id)))}
+      >
+        {copy.saved.importButton(picked.size)}
+      </button>
     </div>
   );
 }

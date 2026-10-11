@@ -50,3 +50,6 @@
 2026-10-12 · M12 · 나라 한국어 이름은 Intl.DisplayNames(ko) 사용 · 이름 표를 따로 유지하지 않기 위해, 숫자→알파2 매핑은 i18n-iso-countries로 1회 생성해 src/data에 고정
 2026-10-12 · M12 · 지리 데이터 출처·라이선스는 public/geo/README.md에 기록(world-atlas ISC, KOSTAT 2013 "Free to share or remix") · 상업 배포 시 재확인 필요
 2026-10-12 · M12 · 새 의존성 react-simple-maps@3(React 18 유지, SPEC 지정), topojson-client·d3-geo(센트로이드/지리 변환), @types/*(dev)
+2026-10-12 · M13 · 마법사 답변과 mustInclude는 trips.planning_prefs에 저장하고, 요청의 mustInclude는 본문으로도 전달 · 저장은 이후 호출 컨텍스트용, 본문은 이번 요청 강제용
+2026-10-12 · M13 · PlanningPrefs를 supabase/functions/_shared/prefs.ts로 두고 앱은 재export · AI 스키마와 같은 이유(Deno·앱 단일 출처), 모든 필드 nullish로 구조화 출력 스키마와 호환
+2026-10-12 · M13 · 수동 입력 장소의 saved_places 키는 `manual:정규화이름` · google_place_id가 NOT NULL+유니크라 Google 키 없이도 중복 저장 방지

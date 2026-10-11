@@ -128,6 +128,7 @@ export function TripLayout() {
         <ul className="grid gap-1">
           {[
             ...MORE_LINKS.map((l) => ({ to: `${base}/${l.to}`, label: l.label })),
+            { to: '/saved', label: copy.saved.title },
             { to: '/footprints', label: copy.routes.footprints },
             { to: '/settings', label: copy.routes.settings },
           ].map((l) => (

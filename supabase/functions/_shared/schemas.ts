@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PLACE_CATEGORIES } from './domain.ts';
+import { PlanningPrefs } from './prefs.ts';
 
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -21,6 +22,8 @@ export const AiPlanResponse = z.object({
   reply: z.string(), // 채팅에 보여줄 한국어 답변
   intent: z.enum(['chat', 'itinerary']),
   itinerary: z.object({ days: z.array(AiDay).min(1) }).nullable(),
+  // Preferences changed during the conversation ("더 느긋하게"): only the changed fields, null when unchanged.
+  prefsPatch: PlanningPrefs.nullish(),
 });
 export type AiPlanResponse = z.infer<typeof AiPlanResponse>;
 

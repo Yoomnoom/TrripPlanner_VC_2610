@@ -14,6 +14,7 @@ import { ExplorePage } from '@/features/explore/ExplorePage';
 import { FilesPage } from '@/features/files/FilesPage';
 import { ReservationsPage } from '@/features/reservations/ReservationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { SavedPage } from '@/features/saved/SavedPage';
 import { copy } from '@/copy';
 
 const r = copy.routes;
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
     path: '/footprints',
     lazy: async () => ({ Component: (await import('@/features/footprints/FootprintsPage')).default }),
   },
+  { path: '/saved', element: <SavedPage /> },
   { path: '/settings', element: <SettingsPage /> },
   { path: '*', element: <Placeholder title={r.notFound} /> },
 ]);

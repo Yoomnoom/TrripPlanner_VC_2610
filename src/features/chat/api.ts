@@ -5,6 +5,7 @@ import { copy } from '@/copy';
 import { placeKeys, type Place } from '@/features/plan/api';
 import { keys as tripKeys, type Trip } from '@/features/trips/api';
 import { asProposal, proposalToRows, type Proposal } from '@/lib/itinerary';
+import type { PlanningPrefs } from '@/lib/prefs';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/db';
 
@@ -120,8 +121,10 @@ export async function testConnection(provider: 'gemini' | 'openrouter'): Promise
 
 export function useSendMessage(tripId: string) {
   return useMutation({
-    mutationFn: async (message: string) => {
-      const { error } = await db().functions.invoke('ai-plan', { body: { tripId, message } });
+    mutationFn: async (input: string | { message: string; mustInclude?: string[] }) => {
+      const { message, mustInclude } =
+        typeof input === 'string' ? { message: input, mustInclude: undefined } : input;
+      const { error } = await db().functions.invoke('ai-plan', { body: { tripId, message, mustInclude } });
       if (error) throw error;
     },
     onError: async (e) => {
@@ -199,6 +202,21 @@ export function useSaveAiSettings(tripId: string) {
       qc.setQueryData<Trip | null>(tripKeys.trip(tripId), (t) => (t ? { ...t, ...patch } : t));
       toast.success(copy.chat.settingsSaved);
     },
+    onError: () => toast.error(copy.common.saveFailed),
+  });
+}
+
+/** Saves the wizard answers on the trip (planning_prefs is a member-writable column). */
+export function useSavePrefs(tripId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (prefs: PlanningPrefs) => {
+      const { error } = await db().from('trips').update({ planning_prefs: prefs }).eq('id', tripId);
+      if (error) throw error;
+      return prefs;
+    },
+    onSuccess: (prefs) =>
+      qc.setQueryData<Trip | null>(tripKeys.trip(tripId), (t) => (t ? { ...t, planning_prefs: prefs } : t)),
     onError: () => toast.error(copy.common.saveFailed),
   });
 }

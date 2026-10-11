@@ -13,6 +13,7 @@ import {
   type Plan,
 } from '../_shared/itinerary.ts';
 import { mapLimit } from '../_shared/places.ts';
+import { mergePrefs, readPrefs, isEmptyPrefs } from '../_shared/prefs.ts';
 import { makeResolver } from '../_shared/resolve.ts';
 import { buildPlanUser, PLAN_JSON_SCHEMA, PLAN_SYSTEM } from '../_shared/prompts.ts';
 import { buildFxUrl, parseFxResponse } from '../_shared/fx.ts';
@@ -29,12 +30,23 @@ Deno.serve(async (req) => {
   try {
     const client = userClient(req);
     const userId = await requireUser(client);
-    const body = (await req.json().catch(() => null)) as { tripId?: unknown; message?: unknown } | null;
+    const body = (await req.json().catch(() => null)) as {
+      tripId?: unknown;
+      message?: unknown;
+      mustInclude?: unknown;
+    } | null;
     const tripId = typeof body?.tripId === 'string' ? body.tripId : '';
     const message = typeof body?.message === 'string' ? body.message.trim() : '';
     if (!/^[0-9a-f-]{36}$/i.test(tripId) || message === '' || message.length > 2000) {
       throw new HttpError(400, 'BAD_REQUEST', 'tripId and message (<=2000 chars) are required');
     }
+
+    const mustInclude = Array.isArray(body?.mustInclude)
+      ? (body!.mustInclude as unknown[])
+          .filter((s): s is string => typeof s === 'string' && s.trim() !== '')
+          .map((s) => s.trim().slice(0, 80))
+          .slice(0, 20)
+      : [];
 
     // Membership check through RLS: a non-member simply cannot read the trip.
     const { data: trip } = await client.from('trips').select('*').eq('id', tripId).maybeSingle();
@@ -83,7 +95,17 @@ Deno.serve(async (req) => {
       if (f.length) weather = f;
     }
 
-    const context = buildContext({ trip, dayCount, destinations, places: places.data ?? [], fx, weather });
+    const prefs = readPrefs(trip.planning_prefs);
+    const context = buildContext({
+      trip,
+      dayCount,
+      destinations,
+      places: places.data ?? [],
+      fx,
+      weather,
+      prefs: isEmptyPrefs(prefs) ? null : prefs,
+      mustInclude,
+    });
     const history = [...(hist.data ?? [])]
       .reverse()
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
@@ -105,6 +127,14 @@ Deno.serve(async (req) => {
       schema: LenientPlan as never,
     });
     const plan = fixItinerary(result.data as Plan, dayCount);
+
+    // Conversation changed the preferences ("더 느긋하게"): store the merged result (planning_prefs is a member-writable column).
+    let updatedPrefs = prefs;
+    const patch = (result.data as Plan).prefsPatch;
+    if (patch && !isEmptyPrefs(patch)) {
+      updatedPrefs = mergePrefs(prefs, patch);
+      await client.from('trips').update({ planning_prefs: updatedPrefs }).eq('id', tripId);
+    }
 
     // Resolve each item to a real place (server key). Failures leave the item name-only (resolved:false).
     const center = d0?.lat != null && d0?.lng != null ? { lat: d0.lat, lng: d0.lng } : null;
@@ -147,7 +177,10 @@ Deno.serve(async (req) => {
     ]);
     if (insErr) throw new HttpError(500, 'SAVE_FAILED', 'Could not save the conversation');
 
-    return ok({ message: plan.reply, proposal, provider: result.provider, model: result.model }, cors);
+    return ok(
+      { message: plan.reply, proposal, prefs: updatedPrefs, provider: result.provider, model: result.model },
+      cors,
+    );
   } catch (e) {
     if (e instanceof AiError) {
       console.error(`ai-plan ${e.code}: ${e.message}`); // provider error text only, never keys

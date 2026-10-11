@@ -10,9 +10,19 @@ import { useMembers } from '@/features/trips/api';
 import type { TripContext } from '@/features/trips/TripLayout';
 import { asProposal } from '@/lib/itinerary';
 import { tripDays } from '@/lib/trip';
+import { useSavedPlaces } from '@/features/saved/api';
+import { prefsToText, readPrefs } from '@/lib/prefs';
 import { AiSettingsSheet } from './AiSettingsSheet';
+import { WizardSheet } from './WizardSheet';
 import { ProposalCard } from './ProposalCard';
-import { useAiStatus, useApplyProposal, useChatMessages, useChatRealtime, useSendMessage } from './api';
+import {
+  useAiStatus,
+  useApplyProposal,
+  useChatMessages,
+  useChatRealtime,
+  useSavePrefs,
+  useSendMessage,
+} from './api';
 
 export function ChatPage() {
   const { trip, me } = useOutletContext<TripContext>();
@@ -23,10 +33,13 @@ export function ChatPage() {
   const places = usePlaces(trip.id);
   const status = useAiStatus();
   const send = useSendMessage(trip.id);
+  const savePrefs = useSavePrefs(trip.id);
+  const saved = useSavedPlaces();
   const apply = useApplyProposal(trip.id, tripDays(trip.start_date, trip.end_date));
 
   const [text, setText] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
 
   const noKey = !!status.data && !status.data.gemini && !status.data.openrouter && !status.data.fake;
@@ -81,6 +94,14 @@ export function ChatPage() {
         {messages.data?.length === 0 && (
           <div className="grid gap-2 py-8 text-center text-sm text-muted">
             <p className="font-semibold text-ink">{copy.chat.empty}</p>
+            <button
+              type="button"
+              className="mx-auto min-h-11 rounded-full bg-primary px-5 font-semibold text-white disabled:opacity-50"
+              disabled={noKey}
+              onClick={() => setWizardOpen(true)}
+            >
+              {copy.wizard.open}
+            </button>
             {copy.chat.examples.map((ex) => (
               <button
                 key={ex}
@@ -153,6 +174,22 @@ export function ChatPage() {
         </button>
       </form>
 
+      <WizardSheet
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        initial={readPrefs(trip.planning_prefs)}
+        candidates={[
+          ...new Set([
+            ...(places.data ?? []).filter((p) => p.day_index === null).map((p) => p.name),
+            ...(saved.data ?? []).map((s) => s.name),
+          ]),
+        ]}
+        onFinish={(prefs) => {
+          setWizardOpen(false);
+          savePrefs.mutate(prefs);
+          send.mutate({ message: prefsToText(prefs), mustInclude: prefs.mustInclude ?? [] });
+        }}
+      />
       <AiSettingsSheet
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}

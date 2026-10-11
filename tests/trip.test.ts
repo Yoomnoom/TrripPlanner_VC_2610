@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dayYmd,
   defaultTitle,
+  formatMdWeekday,
   formatDuration,
   formatRange,
   initialOf,
@@ -53,5 +55,16 @@ describe('invite helpers', () => {
     expect(initialOf('민수')).toBe('민');
     expect(initialOf('😀a')).toBe('😀');
     expect(initialOf('')).toBe('?');
+  });
+});
+
+describe('day labels', () => {
+  it('adds days across month/year boundaries', () => {
+    expect(dayYmd('2026-10-09', 0)).toBe('2026-10-09');
+    expect(dayYmd('2026-10-30', 3)).toBe('2026-11-02');
+    expect(dayYmd('2026-12-31', 1)).toBe('2027-01-01');
+  });
+  it('formats with weekday', () => {
+    expect(formatMdWeekday('2026-10-09')).toBe('10월 9일(금)');
   });
 });

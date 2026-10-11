@@ -62,3 +62,17 @@ export const MEMBER_COLORS = [
   '#0D9488',
   '#9333EA',
 ] as const;
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+
+/** Date string of trip day `idx` (0-based). */
+export const dayYmd = (start: string, idx: number) => {
+  const d = new Date(toUtc(start) + idx * DAY_MS);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+};
+
+/** '2026-10-09' → '10월 9일(금)' */
+export const formatMdWeekday = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return `${formatMd(ymd)}(${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+};

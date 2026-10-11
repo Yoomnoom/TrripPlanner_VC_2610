@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   KeyboardSensor,
@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { copy } from '@/copy';
+import { googleEnabled } from '@/lib/env';
 import { Skeleton, ErrorState } from '@/components/ui-kit';
 import { btn } from '@/components/styles';
 import { dayFirstStart, groupByDay, hm, insertAt, legLabel, nextMode, nextSlot, reflowDay } from '@/lib/plan';
@@ -48,6 +49,7 @@ import {
 import { AddPlaceSheet, type AddTarget } from './AddPlaceSheet';
 import { PlaceSheet, type PlaceAction } from './PlaceSheet';
 
+const MapView = lazy(() => import('./MapView'));
 const MODE_ICON = { walk: Footprints, transit: TramFront, drive: Car } as const;
 const IDEAS = 'ideas';
 const dayId = (i: number) => `day:${i}`;
@@ -64,6 +66,8 @@ export function PlanPage() {
   const grouped = useMemo(() => groupByDay(places.data ?? [], total), [places.data, total]);
   useLegCalculation(trip.id, grouped.days);
 
+  const [params, setParams] = useSearchParams();
+  const view = params.get('view') === 'map' ? 'map' : 'list';
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [addTarget, setAddTarget] = useState<AddTarget>(null);
   const [selected, setSelected] = useState<Place | null>(null);
@@ -220,102 +224,133 @@ export function PlanPage() {
   return (
     <div className="p-4">
       <h1 className="py-2 text-xl font-bold">{copy.plan.heading}</h1>
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-        <div className="grid gap-4">
-          {grouped.days.map((list, i) => {
-            const ymd = dayYmd(trip.start_date, i);
-            const open = !collapsed.has(i);
-            return (
-              <Section
-                key={i}
-                id={dayId(i)}
-                ids={list.map((p) => p.id)}
-                header={
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      aria-expanded={open}
-                      aria-label={`${copy.plan.dayTitle(i + 1)} ${open ? copy.plan.collapse : copy.plan.expand}`}
-                      onClick={() =>
-                        setCollapsed((s) => {
-                          const n = new Set(s);
-                          if (n.has(i)) n.delete(i);
-                          else n.add(i);
-                          return n;
-                        })
-                      }
-                      className="flex min-h-11 flex-1 items-center gap-2 text-left"
-                    >
-                      <ChevronDown
-                        className={`size-5 transition-transform ${open ? '' : '-rotate-90'}`}
-                        aria-hidden
-                      />
-                      <span className="font-bold">
-                        {copy.plan.dayTitle(i + 1)} · {formatMdWeekday(ymd)}
-                      </span>
-                      {ymd === today && (
-                        <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
-                          {copy.plan.today}
-                        </span>
-                      )}
-                      <span className="text-sm text-muted">{copy.plan.placeCount(list.length)}</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={btn.ghost}
-                      onClick={() => setAddTarget({ dayIndex: i, dayPlaces: list, ideas: grouped.ideas })}
-                    >
-                      <Plus className="size-4" aria-hidden />
-                      {copy.plan.add}
-                    </button>
-                  </div>
-                }
-                open={open}
-                empty={copy.plan.dayEmpty}
-              >
-                {list.map((p, idx) => (
-                  <li key={p.id} className="grid gap-2">
-                    {idx > 0 && <LegChip prev={list[idx - 1]} cur={p} onClick={() => cycleMode(p)} />}
-                    <PlaceCard place={p} onMenu={() => setSelected(p)} />
-                  </li>
-                ))}
-              </Section>
-            );
-          })}
-
-          <Section
-            id={IDEAS}
-            ids={grouped.ideas.map((p) => p.id)}
-            header={
-              <div className="flex items-center gap-1">
-                <h2 className="flex min-h-11 flex-1 items-center gap-2 font-bold">
-                  {copy.plan.ideas}{' '}
-                  <span className="text-sm font-normal text-muted">
-                    {copy.plan.placeCount(grouped.ideas.length)}
-                  </span>
-                </h2>
-                <button
-                  type="button"
-                  className={btn.ghost}
-                  onClick={() => setAddTarget({ dayIndex: null, dayPlaces: [], ideas: grouped.ideas })}
-                >
-                  <Plus className="size-4" aria-hidden />
-                  {copy.plan.add}
-                </button>
-              </div>
-            }
-            open
-            empty={copy.plan.ideasEmpty}
+      <div
+        role="tablist"
+        className="mb-3 grid max-w-xs grid-cols-2 gap-1 rounded-full bg-surface p-1 shadow-card"
+      >
+        {(['list', 'map'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => setParams(v === 'map' ? { view: 'map' } : {}, { replace: true })}
+            className={`min-h-11 rounded-full text-sm font-semibold ${view === v ? 'bg-hero text-white' : 'text-muted'}`}
           >
-            {grouped.ideas.map((p) => (
-              <li key={p.id}>
-                <PlaceCard place={p} onMenu={() => setSelected(p)} />
-              </li>
-            ))}
-          </Section>
+            {v === 'list' ? copy.map.viewList : copy.map.viewMap}
+          </button>
+        ))}
+      </div>
+
+      {view === 'map' && googleEnabled && (
+        <Suspense fallback={<Skeleton className="h-80" />}>
+          <MapView days={grouped.days} />
+        </Suspense>
+      )}
+      {view === 'map' && !googleEnabled && (
+        <div role="status" className="mb-3 rounded-card bg-primary-soft p-4">
+          <p className="font-bold">{copy.map.needKey}</p>
+          <p className="mt-1 text-sm text-muted">{copy.map.needKeyBody}</p>
         </div>
-      </DndContext>
+      )}
+
+      {(view === 'list' || !googleEnabled) && (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <div className="grid gap-4">
+            {grouped.days.map((list, i) => {
+              const ymd = dayYmd(trip.start_date, i);
+              const open = !collapsed.has(i);
+              return (
+                <Section
+                  key={i}
+                  id={dayId(i)}
+                  ids={list.map((p) => p.id)}
+                  header={
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-label={`${copy.plan.dayTitle(i + 1)} ${open ? copy.plan.collapse : copy.plan.expand}`}
+                        onClick={() =>
+                          setCollapsed((s) => {
+                            const n = new Set(s);
+                            if (n.has(i)) n.delete(i);
+                            else n.add(i);
+                            return n;
+                          })
+                        }
+                        className="flex min-h-11 flex-1 items-center gap-2 text-left"
+                      >
+                        <ChevronDown
+                          className={`size-5 transition-transform ${open ? '' : '-rotate-90'}`}
+                          aria-hidden
+                        />
+                        <span className="font-bold">
+                          {copy.plan.dayTitle(i + 1)} · {formatMdWeekday(ymd)}
+                        </span>
+                        {ymd === today && (
+                          <span className="rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">
+                            {copy.plan.today}
+                          </span>
+                        )}
+                        <span className="text-sm text-muted">{copy.plan.placeCount(list.length)}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={btn.ghost}
+                        onClick={() => setAddTarget({ dayIndex: i, dayPlaces: list, ideas: grouped.ideas })}
+                      >
+                        <Plus className="size-4" aria-hidden />
+                        {copy.plan.add}
+                      </button>
+                    </div>
+                  }
+                  open={open}
+                  empty={copy.plan.dayEmpty}
+                >
+                  {list.map((p, idx) => (
+                    <li key={p.id} className="grid gap-2">
+                      {idx > 0 && <LegChip prev={list[idx - 1]} cur={p} onClick={() => cycleMode(p)} />}
+                      <PlaceCard place={p} onMenu={() => setSelected(p)} />
+                    </li>
+                  ))}
+                </Section>
+              );
+            })}
+
+            <Section
+              id={IDEAS}
+              ids={grouped.ideas.map((p) => p.id)}
+              header={
+                <div className="flex items-center gap-1">
+                  <h2 className="flex min-h-11 flex-1 items-center gap-2 font-bold">
+                    {copy.plan.ideas}{' '}
+                    <span className="text-sm font-normal text-muted">
+                      {copy.plan.placeCount(grouped.ideas.length)}
+                    </span>
+                  </h2>
+                  <button
+                    type="button"
+                    className={btn.ghost}
+                    onClick={() => setAddTarget({ dayIndex: null, dayPlaces: [], ideas: grouped.ideas })}
+                  >
+                    <Plus className="size-4" aria-hidden />
+                    {copy.plan.add}
+                  </button>
+                </div>
+              }
+              open
+              empty={copy.plan.ideasEmpty}
+            >
+              {grouped.ideas.map((p) => (
+                <li key={p.id}>
+                  <PlaceCard place={p} onMenu={() => setSelected(p)} />
+                </li>
+              ))}
+            </Section>
+          </div>
+        </DndContext>
+      )}
 
       <AddPlaceSheet
         target={addTarget}

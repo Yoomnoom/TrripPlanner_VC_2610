@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { copy } from '@/copy';
 import { createQueue } from '@/lib/queue';
 import { supabase } from '@/lib/supabase';
-import { getRoutesProvider, withFallback } from '@/providers/routes';
+import { getRoutesProvider } from '@/providers/routes';
 import type { Database } from '@/types/db';
 import type { TravelMode } from '@/types/domain';
 import { keys as tripKeys } from '@/features/trips/api';
@@ -189,7 +189,7 @@ export const legIsFresh = (prev: LegPlace, cur: LegPlace) =>
 export function useLegCalculation(tripId: string, days: Place[][]) {
   const qc = useQueryClient();
   useEffect(() => {
-    const provider = withFallback(getRoutesProvider());
+    const provider = getRoutesProvider();
     for (const day of days) {
       for (let i = 1; i < day.length; i++) {
         const prev = day[i - 1];

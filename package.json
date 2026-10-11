@@ -19,6 +19,7 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@supabase/supabase-js": "^2.117.3",
         "@tanstack/react-query": "^5.104.1",
+        "@vis.gl/react-google-maps": "^1.10.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "date-fns": "^4.4.0",
@@ -34,6 +35,7 @@
     "devDependencies": {
         "@eslint/js": "^9.39.5",
         "@tailwindcss/vite": "^4.3.3",
+        "@types/google.maps": "^3.66.6",
         "@types/node": "^26.6.5",
         "@types/react": "^18.3.31",
         "@types/react-dom": "^18.3.7",

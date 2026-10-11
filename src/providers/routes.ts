@@ -1,4 +1,6 @@
+import { googleEnabled } from '@/lib/env';
 import { estimateLeg, type LatLng } from '@/lib/geo';
+import { supabase } from '@/lib/supabase';
 import type { TravelMode } from '@/types/domain';
 
 export interface Leg {
@@ -28,9 +30,36 @@ export const estimateRoutesProvider: RoutesProvider = {
   },
 };
 
-/** Swap point: return a Google (Edge Function `routes-leg`) provider here, wrapped by `withFallback`. */
+/**
+ * Google Routes through the `routes-leg` Edge Function (server key stays server-side).
+ * Returns null for NO_KEY / NO_ROUTE / errors so `withFallback` uses the estimate.
+ * UNVERIFIED against the live API (docs/HUMAN_TODO.md).
+ */
+export const googleRoutesProvider: RoutesProvider = {
+  id: 'google',
+  async getLeg(from, to, mode) {
+    if (!supabase) return null;
+    const { data, error } = await supabase.functions.invoke('routes-leg', { body: { from, to, mode } });
+    if (error) return null;
+    const leg = (
+      data as {
+        data?: { leg?: { durationS: number; distanceM: number; polyline: string | null } | null };
+      } | null
+    )?.data?.leg;
+    return leg
+      ? {
+          durationS: leg.durationS,
+          distanceM: leg.distanceM,
+          polyline: leg.polyline ?? undefined,
+          estimated: false,
+        }
+      : null;
+  },
+};
+
+/** Google when a browser key is configured (same switch as the map), else the offline estimate. */
 export function getRoutesProvider(): RoutesProvider {
-  return estimateRoutesProvider;
+  return googleEnabled ? withFallback(googleRoutesProvider) : estimateRoutesProvider;
 }
 
 /** Primary provider first; any failure or empty answer falls back to the estimate. */

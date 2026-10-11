@@ -29,3 +29,6 @@
 2026-10-11 · M3 · 장소 검색은 PlacesProvider(search/details/coords), 이동 정보는 RoutesProvider(getLeg)+withFallback 뒤에 두고 지금은 직접 입력·직선거리 추정 구현만 연결 · Google 키 없이 진행, 키가 생기면 구현체만 추가
 2026-10-11 · M3 · 직접 입력 장소의 좌표는 선택 입력(위도, 경도) · 좌표가 없으면 이동 칩을 만들 수 없어서 추정치 확인용으로 둠
 2026-10-11 · M3 · 새 의존성 @dnd-kit/core·sortable·utilities(드래그 정렬, SPEC 4-4 지정)
+2026-10-11 · M4 · routes-leg는 경로가 없으면 서버 추정 대신 {leg:null}을 반환하고 클라이언트 withFallback이 추정 · geo.ts를 Deno 함수와 공유하면 .ts 확장자 import가 tsc와 충돌해서 공식을 한 곳(클라이언트)에만 둠
+2026-10-11 · M4 · 구글 키 감지는 VITE_GOOGLE_MAPS_BROWSER_KEY 유무 하나로 통일(지도·Routes 제공자 전환) · 키가 들어오면 코드 수정 없이 켜짐
+2026-10-11 · M4 · 새 의존성 @vis.gl/react-google-maps(지도, SPEC 4-6 지정), @types/google.maps(dev, 타입)
